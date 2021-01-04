@@ -19,6 +19,7 @@ client.on('message', message => {
             message.channel.send("Please enter the number in your secret room");
         }    
         else if(isCorrectNumber(message.content)) {
+            message.channel.send("You guessed the right number. Congratulations!");
             client.channels.cache.get(channel01).send("<@" + message.author + ">" + " guessed the right number! The number was " + getNumber() + ". A new number has been generated.");
             console.log("The new number is " + newNumber());
         }
