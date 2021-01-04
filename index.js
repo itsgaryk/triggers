@@ -18,12 +18,6 @@ client.on('message', message => {
         if(message.channel.id === "793013215642124290" && isNumeric(message.content)) {
             message.channel.send("Please enter the number in your secret room");
         }    
-        else if(message.content.startsWith(`${prefix}hint`) && getNumber() > 50) {
-            message.channel.send("Here's your hint. The number is higher than 50 and lower than 100");
-        }    
-        else if(message.content.startsWith(`${prefix}hint`) && getNumber() < 51) {
-            message.channel.send("Here's your hint. The number is lower than 51 and higher than 0");
-        }
         else if(isCorrectNumber(message.content)) {
             client.channels.cache.get(channel01).send("<@" + message.author + ">" + " guessed the right number! The number was " + getNumber() + ". A new number has been generated.");
             console.log("The new number is " + newNumber());
@@ -34,6 +28,12 @@ client.on('message', message => {
         else {
             message.channel.send("You guessed the wrong number. Try again!");
         }
+    }
+    else if(message.content.startsWith(`${prefix}hint`) && getNumber() > 50) {
+        message.channel.send("Here's your hint. The number is higher than 50 and lower than 100");
+    }    
+    else if(message.content.startsWith(`${prefix}hint`) && getNumber() < 51) {
+        message.channel.send("Here's your hint. The number is lower than 51 and higher than 0");
     }
 })
 
