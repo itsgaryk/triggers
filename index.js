@@ -39,27 +39,29 @@ client.on('message', message => {
         const command = args.shift().toLowerCase();    
         const memberRoles = message.member.roles.cache;
         
-        if (command === "help") {
-            message.channel.send("Available Commands\n\n" + "!admin - Try me\n" + "!help - Lists all available commands\n" + "!hint - Gives you a hint for the number\n" + "!whisper - Coming soon");
-        }
-        else if (command === "hint") {
-            message.channel.send(hintNumber());
-        }
-        else if (command === "owner")
-        {
-            message.channel.send("The owner of the server is " + guildOwner);
-        }
-        else if (command === "channel") {
-            message.channel.send("I will eventually do something");
-        }
-        else if (command === "admin") {
-            if (!hasAdmin(memberRoles)) {
-                message.channel.send("You have no power here");
-            }
-            else {
-                message.channel.send("Hello master");
-            }
-                
+        switch(command){
+            case "help":
+                message.channel.send("Available Commands\n\n" + "!admin - Try me\n" + "!help - Lists all available commands\n" + "!hint - Gives you a hint for the number\n" + "!whisper - Coming soon");
+                break;
+            case "owner":
+                message.channel.send("The owner of the server is " + guildOwner);
+                break;
+            case "hint":
+                message.channel.send(hintNumber()); 
+                break;
+            case "channel":
+                message.channel.send("I will eventually do something");
+                break;
+            case "cunt":
+                message.channel.send("Gary");
+            case "admin":
+                if (!hasAdmin(memberRoles)) {
+                    message.channel.send("You have no power here");
+                }
+                else {
+                    message.channel.send("Hello master");
+                }
+                break;
         }
     }
 
