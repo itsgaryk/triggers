@@ -1,43 +1,96 @@
 const Discord = require('discord.js');
-const { prefix, token} = require('./config.json');
+const {prefix, token} = require('./config.json');
 const client = new Discord.Client();
-//Channel 1 = dev-zone
-const channel01 = "793013215642124290";
-var guessNumber = newNumber();
-
-console.log("The 1st number is " + guessNumber);
 
 client.login(token);
+
 client.once('ready', () => {
-    console.log('Ready!')
-})
+    console.log('Lock and loaded!')    
+});
+
+//Configuring bot activity
+client.on('ready', () => {
+    client.user.setStatus("Online");
+    client.user.setActivity("!help for commands", {type: "LISTENING"});
+  })
+
+//Number game variable
+var guessNumber = newNumber();
+console.log("The 1st number is " + guessNumber);
+
 
 client.on('message', message => {
+    //Variables
+    const guildOwner  = message.guild.owner.user.id;
+    //Sophie, Marcio, Perry, Sarah
+    var channelList = ["789338729198256128", "789338885536088095", "789338994692325406", "789339231569969172"];
 
-    if(isNumeric(message.content)) {
-        if(message.channel.id === "793013215642124290" && isNumeric(message.content)) {
-            message.channel.send("Please enter the number in your secret room");
-        }    
-        else if(isCorrectNumber(message.content)) {
-            message.channel.send("You guessed the right number. Congratulations!");
-            client.channels.cache.get(channel01).send("<@" + message.author + ">" + " guessed the right number! The number was " + getNumber() + ". A new number has been generated.");
-            console.log("The new number is " + newNumber());
+    //Checks if bot sent the message
+    if (message.author.bot) {
+        return;
+    }
+
+    //Triggers    
+
+    //Command detecting
+    if(message.content.startsWith(prefix)) {
+    
+        const args = message.content.slice(prefix.length).trim().split(/ +/);
+        const command = args.shift().toLowerCase();    
+        const memberRoles = message.member.roles.cache;
+        
+        if (command === "help") {
+            message.channel.send("Available Commands\n\n" + "!admin - Try me\n" + "!help - Lists all available commands\n" + "!hint - Gives you a hint for the number\n" + "!whisper - Coming soon");
         }
-        else if((getNumber() - message.content) >= -10 && (getNumber() - message.content <= 10)) {
-            message.channel.send("Getting warmer!");
+        else if (command === "hint") {
+            message.channel.send(hintNumber());
         }
-        else {
-            message.channel.send("You guessed the wrong number. Try again!");
+        else if (command === "owner")
+        {
+            message.channel.send("The owner of the server is " + guildOwner);
+        }
+        else if (command === "channel") {
+            message.channel.send("I will eventually do something");
+        }
+        else if (command === "admin") {
+            if (!hasAdmin(memberRoles)) {
+                message.channel.send("You have no power here");
+            }
+            else {
+                message.channel.send("Hello master");
+            }
+                
         }
     }
-    else if(message.content.startsWith(`${prefix}hint`) && getNumber() > 50) {
-        message.channel.send("Here's your hint. The number is higher than 50 and lower than 100");
-    }    
-    else if(message.content.startsWith(`${prefix}hint`) && getNumber() < 51) {
-        message.channel.send("Here's your hint. The number is lower than 51 and higher than 0");
+
+    //Number guessing
+    if(!isNumeric(message.content)) {
+        return;
     }
+    else if(!checkNumber(message.content) && getNumber() - message.content >= -10 && (getNumber() - message.content <= 10)) {
+        message.channel.send("Getting warmer!");
+    }
+    else if(checkNumber(message.content)) {
+        message.channel.send("You guessed the right number. Congratulations!");
+        var i = 0;
+        while(i < channelList.length) {
+            client.channels.cache.get(channelList[i]).send("<@" + message.author + ">" + " guessed the right number! The number was " + getNumber() + ". A new number has been generated.");
+            i++;
+        }
+        newNumber()
+        console.log("The new number is " + getNumber());
+    }
+    else {
+        message.channel.send("You guessed the wrong number. Try again!");
+    }  
 })
 
+//permission functions
+function hasAdmin(n){
+    return n.has("783739916088639548");
+}
+
+//number functions
 function isNumeric(n){
     return !isNaN(parseFloat(n)) && isFinite(n);
 }
@@ -45,18 +98,21 @@ function isNumeric(n){
 function getNumber(){
     return guessNumber;
 }
-function isCorrectNumber(n){
+
+function checkNumber(n){
     return guessNumber == n;
+}
+
+function hintNumber() {
+    if (getNumber() > 50) {
+        return("Here's your hint. The number is higher than 50 and lower than 100")
+    }
+    else {
+        return("Here's your hint. The number is lower than 51 and higher than 0")
+    }    
 }
 
 function newNumber(){
     guessNumber = Math.floor(Math.random() * 100);
     return guessNumber;
 }
-        //console.log(isNumeric(message.content));
-        //console.log(message.content);
-        /*
-        if(message.content.startsWith(`${prefix}kick`)){
-            message.channel.send("fuck you " + message.author.username + " <@" + message.author + ">")
-        }
-        */
