@@ -18,7 +18,7 @@ client.on('ready', () => {
 var guessNumber = newNumber();
 console.log("The 1st number is " + guessNumber);
 
-
+//Event Message send
 client.on('message', message => {
     //Variables
     const guildOwner  = message.guild.owner.user.id;
@@ -29,11 +29,31 @@ client.on('message', message => {
     if (message.author.bot) {
         return;
     }
-
-    //Triggers    
-
+    //Triggers
+    else if (!message.content.startsWith(prefix) && !isNumeric(message.content)) {
+        let args = [];
+        args =  message.content.toLowerCase().split(" ");
+        let i = 0;
+        
+        while(i < args.length) {
+           switch (args[i]) {
+                case "cunt":
+                    message.channel.send({files: ["https://i.imgur.com/YfTpN6L.jpg"]});
+                    return;
+                case "riccardo":
+                    message.channel.send({files: ["https://i.imgur.com/IvElYDw.gif"]});
+                    return;    
+                case "sweden":
+                    message.channel.send({files: ["https://i.imgur.com/npzZ1X5.jpg"]});
+                    return;    
+                default:
+                 break;
+           }
+           i++
+        }
+    }
     //Command detecting
-    if(message.content.startsWith(prefix)) {
+    else if(message.content.startsWith(prefix)) {
     
         const args = message.content.slice(prefix.length).trim().split(/ +/);
         const command = args.shift().toLowerCase();    
@@ -62,27 +82,25 @@ client.on('message', message => {
                 
         }
     }
-
     //Number guessing
-    if(!isNumeric(message.content)) {
-        return;
-    }
-    else if(!checkNumber(message.content) && getNumber() - message.content >= -10 && (getNumber() - message.content <= 10)) {
-        message.channel.send("Getting warmer!");
-    }
-    else if(checkNumber(message.content)) {
-        message.channel.send("You guessed the right number. Congratulations!");
-        var i = 0;
-        while(i < channelList.length) {
-            client.channels.cache.get(channelList[i]).send("<@" + message.author + ">" + " guessed the right number! The number was " + getNumber() + ". A new number has been generated.");
-            i++;
+    else if(isNumeric(message.content) && message.channel.name.toLowerCase() === "your-secret-room") {
+        if(!checkNumber(message.content) && getNumber() - message.content >= -10 && (getNumber() - message.content <= 10)) {
+            message.channel.send("Getting warmer!");
         }
-        newNumber()
-        console.log("The new number is " + getNumber());
+        else if(checkNumber(message.content)) {
+            message.channel.send("You guessed the right number. Congratulations!");
+            let i = 0;
+            while(i < channelList.length) {
+                client.channels.cache.get(channelList[i]).send("<@" + message.author + ">" + " guessed the right number! The number was " + getNumber() + ". A new number has been generated.");
+                i++;
+            }
+            newNumber()
+            console.log("The new number is " + getNumber());
+        }
+        else {
+            message.channel.send("You guessed the wrong number. Try again!");
+        }  
     }
-    else {
-        message.channel.send("You guessed the wrong number. Try again!");
-    }  
 })
 
 //permission functions
