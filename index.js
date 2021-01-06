@@ -1,9 +1,7 @@
 const Discord = require('discord.js');
 const {prefix, token} = require('./config.json');
 const client = new Discord.Client();
-
 client.login(token);
-
 client.once('ready', () => {
     console.log('Lock and loaded!')    
 });
@@ -22,7 +20,7 @@ console.log("The 1st number is " + guessNumber);
 client.on('message', message => {
     //Variables
     const guildOwner  = message.guild.owner.user.id;
-    //Sophie, Marcio, Perry, Sarah
+    //List of secret rooms - Sophie, Marcio, Perry, Sarah
     var channelList = ["789338729198256128", "789338885536088095", "789338994692325406", "789339231569969172"];
 
     //Checks if bot sent the message
@@ -47,44 +45,47 @@ client.on('message', message => {
                     message.channel.send({files: ["https://i.imgur.com/npzZ1X5.jpg"]});
                     return;    
                 default:
-                 break;
+                    i++
+                    break;
            }
-           i++
         }
     }
-    //Command detecting
+    //Commands
     else if(message.content.startsWith(prefix)) {
     
         const args = message.content.slice(prefix.length).trim().split(/ +/);
         const command = args.shift().toLowerCase();    
         const memberRoles = message.member.roles.cache;
         
-        if (command === "help") {
-            message.channel.send("Available Commands\n\n" + "!admin - Try me\n" + "!help - Lists all available commands\n" + "!hint - Gives you a hint for the number\n" + "!whisper - Coming soon");
-        }
-        else if (command === "hint") {
-            message.channel.send(hintNumber());
-        }
-        else if (command === "owner")
-        {
-            message.channel.send("The owner of the server is " + guildOwner);
-        }
-        else if (command === "channel") {
-            message.channel.send("I will eventually do something");
-        }
-        else if (command === "admin") {
-            if (!hasAdmin(memberRoles)) {
-                message.channel.send("You have no power here");
-            }
-            else {
-                message.channel.send("Hello master");
-            }
-                
+        switch (command) {
+            case "help":
+                message.channel.send("Available Commands\n\n" + "!admin - Try me\n" + "!help - Lists all available commands\n" + "!hint - Gives you a hint for the number\n" + "!whisper - Coming soon");
+                return;
+            case "hint":
+                message.channel.send(hintNumber());
+                return;
+            case "owner":
+                message.channel.send("The owner of the server is " + guildOwner);
+            case "channel":
+                message.channel.send("I will eventually do something");
+                return;
+            case "admin":
+                if (!hasAdmin(memberRoles)) {
+                    message.channel.send("You have no power here");
+                }
+                else {
+                    message.channel.send("Sup G");
+                }
+            case "whisper":
+                return;
+            default:
+                message.channel.send("That command doesn't exist. Try again!");    
+                return;
         }
     }
     //Number guessing
     else if(isNumeric(message.content) && message.channel.name.toLowerCase() === "your-secret-room") {
-        if(!checkNumber(message.content) && getNumber() - message.content >= -10 && (getNumber() - message.content <= 10)) {
+        if(!checkNumber(message.content) && (getNumber() - message.content >= -10) && (getNumber() - message.content <= 10)) {
             message.channel.send("Getting warmer!");
         }
         else if(checkNumber(message.content)) {
