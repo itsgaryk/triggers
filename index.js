@@ -45,17 +45,22 @@ client.on('message', message => {
     else if(message.content.startsWith(prefix)) {
     
         const args = message.content.slice(prefix.length).trim().split(/ +/);
-        console.log(args);
+        //console.log(args);
         const command = args.shift().toLowerCase();    
 
         switch (command) {
             case "test":
                 console.log(serverConfigNew);
-                console.log("The number is " + serverConfigNew.guessNumber);
+                if(!hasMod(memberRoles, serverConfigNew.modRoles)) {
+                    message.channel.send("you don't have permissions to perform that command.")
+                }
+                else {
+                    message.channel.send("you have a mod role");
+                    }
                 return;
             case "mod":
-                if(!hasMod(memberRoles)) {
-                    message.channel.send("You have no power here");
+                if(!hasMod(memberRoles, serverConfigNew.modRoles)) {
+                    message.channel.send("you don't have permissions to perform that command.")
                 }
                 return;
             case "help":
@@ -67,28 +72,49 @@ client.on('message', message => {
             case "owner":
                 message.channel.send("The owner of the server is " + "<@" + guildOwner + ">");
             case "room":
-                let commandParameters = ["add", "remove"]
-                if(!hasMod(memberRoles, serverConfigNew.modRoles)){
-                    message.channel.send("you don't have permissions to perform that command.")
+                let argRoom;
+                if(!hasMod(memberRoles, serverConfigNew.modRoles)) {
+                    message.channel.send("You don't have permissions to perform that command.")
                     return;
-                }                
-                try{
-                    let commandParameter = args[2];
+                }
+                try {
+                    console.log(args[2])
+                    argRoom = args[2].replace(/[^\w\s]/gi, '');
                 }
                 catch (err){
-                    message.channel.send("Please include the channel e.g. !room add #general")
+                    console.log("Channel formatting error (or doesn't exist)");
+                    message.channel.send("Please format the command properly e.g. !room add #general")
                     return;
                 }
-            switch (args[1]){
-                    //replace(/\/r/g, '/');
-                    case "add":
-                        return;
-                    case "remove":
-                        return;
-                    default:
-                        break;
+                if(message.guild.channels.cache.get(argRoom)=== undefined)
+                {
+                    message.channel.send("Please format the command properly e.g. !room add #general")
+                    return;
                 }
-                return;                
+                switch(args[1]){
+                    case "add":
+                        if(isSecretRoom(argRoom, serverConfigNew.secretRooms)){
+                            serverConfigNew.secretRooms.push(argRoom);
+                            break;
+                        }
+                        else
+                        {
+                            message.channel.send("Room is already added");
+                            return;
+                        }
+                    case "remove":
+                        if(isSecretRoom(argRoom, serverConfigNew)){
+                            serverConfigNew.secretRooms = removeRoom(argRoom, serverConfigNew);
+                            break;
+                        }
+                        else{
+                            message.channel.send("Room is not on the list")
+                            return;
+                        }
+                    default:
+                        message.channel.send("Please format the command properly e.g. !room add #general")
+                        return;
+                }
             case "whisper":
                 return;
             default:
@@ -146,30 +172,48 @@ client.on('message', message => {
     }
 })
 
+//General functions
+function isArrayEmpty(n){
+    if (n.length-1 === 0)
+    return false;
+}
+
 //Permission functions
 function hasMod(n,o){
-    if (o.length == 0){
+    if (isArrayEmpty(o)){
         return 0;
     }
     for(i = 0; i < o.length; i++){
-        if (n.has("o[i]")){
+        if (n.find(r => r.id == o[i])){
             return 1;
         }
     }
     return 0;
 }
 
+//Room commands
 function isSecretRoom(n, o){    
-    if (o.length == 0){
+    if (isArrayEmpty(o)){
         return 0;
     }
     for(i = 0; i < o.length; i++){
         if (n == o[i]){
-            return 1;
+            return true;
         }
     }
     return 0;
 }
+
+function removeRoom(n, o){
+    let newRoomList = o
+    for(i = 0; i < o.length; i++){
+        if (n == o[i]){
+            newRoomList.splice(i,1)
+            return newRoomList;
+        }
+    }
+}
+
 //number functions
 function isNumeric(n){
     return !isNaN(parseFloat(n)) && isFinite(n);
@@ -198,6 +242,5 @@ function hintNumber(n) {
 }
 
 function newNumber(n) {
-    let passNumber = Math.floor(Math.random()*100)+1;
-    return passNumber;
+    return Math.floor(Math.random()*100)+1;
 }
