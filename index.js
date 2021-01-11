@@ -105,7 +105,12 @@ client.on('message', message => {
                         return;
                 }
             case "help":
-                message.channel.send("Available Commands\n\n" + "!help - Lists all available commands\n" + "!mod [add/remove] [role] - Manage your mods (mod only)\n" + "!hint - Gives you a hint for the number\n" + "room [add/remove] [channel] - Manage your secret rooms (mod only)");
+                message.channel.send("Available Commands\n\n" + "!help - Lists all available commands\n" + 
+                "!mod [add/remove] [role] - Manage your mods (mod only)\n" + 
+                "!hint - Gives you a hint for the number\n" + 
+                "!room [add/remove] [channel] - Manage your secret rooms (mod only)\n" +
+                "!trigger [add/remove] [word] [URL] - Manage your trigger words (remove is mod only)\n" +
+                "!triggers - displays all avaiable triggers");
                 return;
             case "hint":
                 message.channel.send(hintNumber(serverConfig.guessNumber));
@@ -170,54 +175,75 @@ client.on('message', message => {
                         message.channel.send("Error: no argument after room e.g. !room add #general")
                         return;
                 }
-                case "trigger":
-                    let argTrigger;
-                    switch (args[1]){
-                        case undefined:
-                            message.channel.send("Error: no trigger added e.g. !trigger add #general");
+            case "trigger":
+                switch (true){
+                    case args[0] === undefined:
+                        message.channel.send("Error: did not include add/remove e.g. !trigger add funny https://website.com/image.jpg");
+                        return;
+                    case args[1] === undefined:
+                        message.channel.send("Error: did not include a trigger word e.g. !trigger add funny https://website.com/image.jpg");
+                        return;
+                    case args[2] === undefined:
+                        message.channel.send("Error: missing an argument. Format should `!trigger add funny https://website.com/image.jpg`");
+                        return;
+                    default:
+                        if(isNumber(args[1])){
+                            message.channel.send("Error: cannot use number as a trigger");
                             return;
-                        default:
-                            if(isNumber(args[2])){
-                                message.channel.send("Error: cannot use number as a trigger");
-                            }
-                            triggerWord = args[1]
-                            triggerImage = args[2]
+                        }
+                        
+                        let url;
+                        try{
+                            url = new URL(args[2])
+                        }
+                        catch (_) {
+                            message.channel.send("Error: Invalid URL e.g. https://www.website.com/image.jpg")
+                            return;
+                        }
+                        
+                        let urlSplit = args[2].split(".");
+                        let validTypes = ["bmp", "jpg", "png", "jpeg" ];
+                        if (!validateURL(urlSplit, validTypes)){
+                            message.channel.send("Error: Must provide direct link to image e.g. https://www.website.com/image.jpg")
+                            return;
+                        }
+                        break;                     
+                }
+                let triggerWord = args[1];
+                let triggerLink = args[2];
+                let argTrigger = {triggerWord, triggerLink};
+
+                switch (args[0]){
+                    case "add":
+                        if(checkTrigger(argTrigger, serverConfig.triggers)) {
+                            serverConfig.triggers = addId(argTrigger, serverConfig.triggers);
+                            message.channel.send("Trigger `" + triggerWord + "` successfully added");
+                            updateConfig(serverConfig, guildId);
+                            return;
+                        }
+                        else{
+                            message.channel.send("Trigger word `" + triggerWord + "` already exists");
+                            return;
+                        }
+                    case "remove":
+                        //to be added
+                        return;
+                    default:
+                        return;
+                
+                }
+
+            
+            case "triggers":
+                let a = "Available triggers\n```"
+                for(i =0; i < serverConfig.triggers.length; i++){
+                    a = a + serverConfig.triggers[i].triggerWord + " "
+                    if(i == serverConfig.triggers.length-1){
+                        a = a + "```"
                     }
-                    switch(args[0]){
-                        case undefined:
-                            message.channel.send("Error: no add/remove command e.g. !room add #general");
-                            return;
-                        case "list":
-                            message.channel.send("Here's a list of all channels as secret rooms\n" + serverConfig.secretRooms);
-                            return;
-                        case "add":
-                            if(checkId(argRoom, serverConfig.secretRooms)){
-                                message.channel.send("Error: Channel is already added");
-                                return;
-                            }
-                            else
-                            {
-                                serverConfig.secretRooms = addId(argRoom, serverConfig.secretRooms);
-                                message.channel.send("Channel <#" + argRoom + "> has successfully been added");
-                                updateConfig(serverConfig,guildId);
-                                return;
-                            }
-                        case "remove":
-                            if(checkId(argRoom, serverConfig.secretRooms)){
-                                serverConfig.secretRooms = removeId(argRoom, serverConfig.secretRooms);
-                                message.channel.send("Channel <#" + argRoom + "> has successfully been removed");
-                                updateConfig(serverConfig,guildId);
-                                return;
-                            }
-                            else{
-                                message.channel.send("Channel is not on the list")
-                                return;
-                            }
-                        default:
-                            message.channel.send("Error: no argument after room e.g. !room add #general")
-                            return;
-                    }                
-                break;
+                }
+                message.channel.send(a);
+                return;
             default:
                 message.channel.send("Invalid command. See !help for a list of available commands");    
                 return;
@@ -229,7 +255,7 @@ client.on('message', message => {
         for(i = 0; i < args.length; i++) {
             for (j = 0; j < serverConfig.triggers.length; j++) {
                 if (args[i] === serverConfig.triggers[j].triggerWord){
-                    message.channel.send({files: ["images/" + guildId + "/" + serverConfig.triggers[j].triggerLink]});
+                    message.channel.send({files: [serverConfig.triggers[j].triggerLink]});
                     return;
                 }
             }
@@ -281,6 +307,29 @@ function hasMod(n,o){
     }
     for(i = 0; i < o.length; i++){
         if (n.find(r => r.id == o[i])){
+            return 1;
+        }
+    }
+    return 0;
+}
+
+//Checking triggers
+function checkTrigger(n, o){
+    if (isArrayEmpty(o)){
+        return 0;
+    }
+    for(i = 0; i < o.length; i++){
+        if (n.triggerWord == o[i].triggerWord){
+            return 0;
+        }
+    }
+    return 1;
+}
+
+
+function validateURL(n, o){
+    for(i=0; i < n.length; i++){
+        if (n[n.length-1] === o[i]){
             return 1;
         }
     }
