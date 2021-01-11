@@ -183,15 +183,19 @@ client.on('message', message => {
                     case args[1] === undefined:
                         message.channel.send("Error: did not include a trigger word e.g. !trigger add funny https://website.com/image.jpg");
                         return;
-                    case args[2] === undefined:
-                        message.channel.send("Error: missing an argument. Format should `!trigger add funny https://website.com/image.jpg`");
-                        return;
                     default:
                         if(isNumber(args[1])){
                             message.channel.send("Error: cannot use number as a trigger");
                             return;
                         }
-                        
+                }
+
+                let triggerWord = args[1];
+                let triggerLink = args[2];
+                let argTrigger = {triggerWord, triggerLink};
+
+                switch (args[0]){
+                    case "add":
                         let url;
                         try{
                             url = new URL(args[2])
@@ -207,14 +211,7 @@ client.on('message', message => {
                             message.channel.send("Error: Must provide direct link to image e.g. https://www.website.com/image.jpg")
                             return;
                         }
-                        break;                     
-                }
-                let triggerWord = args[1];
-                let triggerLink = args[2];
-                let argTrigger = {triggerWord, triggerLink};
 
-                switch (args[0]){
-                    case "add":
                         if(checkTrigger(argTrigger, serverConfig.triggers) == 1) {
                             serverConfig.triggers = addId(argTrigger, serverConfig.triggers);
                             message.channel.send("Trigger `" + triggerWord + "` successfully added");
@@ -226,8 +223,15 @@ client.on('message', message => {
                             return;
                         }
                     case "remove":
-                        //to be added
-                        return;
+                        if(checkTrigger(argTrigger, serverConfig.triggers) == 0) {
+                            serverConfig.triggers = removeTrigger(triggerWord, serverConfig.triggers);
+                            message.channel.send("Trigger `" + triggerWord + "` successfully removed");
+                            updateConfig(serverConfig, guildId);
+                        }
+                        else{
+                            message.channel.send("Error: Trigger word does not exist on the server")
+                        }
+                            return;                        
                     default:
                         return;
                 
@@ -315,18 +319,27 @@ function hasMod(n,o){
     return 0;
 }
 
-//Checking triggers
+//Trigger functions
 function checkTrigger(n, o){
     if (isArrayEmpty(o)){
         return 1;
     }
     for(i = 0; i < o.length; i++){
         if (n.triggerWord == o[i].triggerWord) {
-            console.log (n.triggerWord + "   " + o[i].triggerWord)
             return 0;
         }
     }
     return 1;
+}
+
+function removeTrigger(n, o){
+    let newList = o
+    for(i = 0; i < o.length; i++){
+        if (n == o[i].triggerWord){
+            newList.splice(i,1)
+            return newList;
+        }
+    }
 }
 
 
@@ -339,7 +352,7 @@ function validateURL(n, o){
     return 0;
 }
 
-//Array checking functions
+//Array functions
 //n = user submitted array  o = serverConfig.[array]
 function checkId(n, o){    
     if (isArrayEmpty(o)){
