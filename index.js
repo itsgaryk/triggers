@@ -25,16 +25,15 @@ client.on('message', message => {
     const memberRoles = message.member.roles.cache;
     
     //Loads server config file. Creates new if it doesn't already exist.
-    let serverConfigNew;
+    let serverConfig;
     try{
-        serverConfigNew = JSON.parse(fs.readFileSync("json/" + guildId + ".json"));
+        serverConfig = JSON.parse(fs.readFileSync("json/" + guildId + ".json"));
     }
     catch(err){
-        serverConfigNew = {"guessNumber": newNumber(),"secretRooms": [0],"modRoles": [0]};
+        serverConfig = {"guessNumber": newNumber(),"secretRooms": [],"modRoles": [], "triggers":[]};
         console.log("config file for server " + guildId + " does not exist. Creating a new one")
-        fs.writeFileSync("json/"+ guildId + ".json", JSON.stringify(serverConfigNew, null, 2));
+        fs.writeFileSync("json/"+ guildId + ".json", JSON.stringify(serverConfig, null, 2));
     }
-    const serverConfig = serverConfigNew;
 
     //Checks if bot sent the message
     if (message.author.bot) {
@@ -43,117 +42,208 @@ client.on('message', message => {
 
     //Commands
     else if(message.content.startsWith(prefix)) {
-    
-        const args = message.content.slice(prefix.length).trim().split(/ +/);
-        //console.log(args);
-        const command = args.shift().toLowerCase();    
+            
+        const args = message.content.toLowerCase().slice(prefix.length).trim().split(/ +/);
+        const command = args.shift();
 
         switch (command) {
             case "test":
-                console.log(serverConfigNew);
-                if(!hasMod(memberRoles, serverConfigNew.modRoles)) {
-                    message.channel.send("you don't have permissions to perform that command.")
+                if(!hasMod(memberRoles, serverConfig.modRoles) || message.author.id == guildOwner) {
+                    console.log(serverConfig);
                 }
-                else {
-                    message.channel.send("you have a mod role");
-                    }
                 return;
             case "mod":
-                if(!hasMod(memberRoles, serverConfigNew.modRoles)) {
+                if(!hasMod(memberRoles, serverConfig.modRoles) || message.author.id == guildOwner) {
                     message.channel.send("you don't have permissions to perform that command.")
+                    return;
                 }
-                return;
+                let argMod;
+                switch (args[1]){
+                    case undefined:
+                        message.channel.send("Error: no role added e.g. !mod add @mod");
+                        return;
+                    default:
+                        argMod = args[1].replace(/[^\w\s]/gi, '');
+                        if (!isNumber(argMod)){
+                            message.channel.send("Error: Not a number. Please submit a valid role");
+                            return;
+                        }
+                        if (message.guild.roles.cache.get(argMod) === undefined){
+                            message.channel.send("Error: Role does not exist on this server. Please submit a valid role")
+                            return;
+                        }
+                        break;
+                }
+                switch(args[0]){
+                    case undefined:
+                        message.channel.send("Error: no add/remove command e.g. !role add @mod");
+                        return;
+                    case "add":
+                        if(checkId(argMod, serverConfig.modRoles)) {
+                            message.channel.send("Error: Role is already added");
+                            return;
+                        }
+                        else {
+                            serverConfig.modRoles = addId(argMod, serverConfig.modRoles);
+                            message.channel.send("Role <@&" + argMod + "> has successfully been added");
+                            updateConfig(serverConfig,guildId);
+                            return;
+                        }
+                    case "remove":
+                        if(checkId(argMod, serverConfig.modRoles)) {
+                            serverConfig.modRoles = removeId(argMod, serverConfig.modRoles);
+                            message.channel.send("Role <@&" + argMod + "> has successfully been removed");
+                            updateConfig(serverConfig,guildId);
+                            return;
+                        }
+                        else {
+                            message.channel.send("Role is not on the list")
+                            return;
+                        }
+                    default:
+                        message.channel.send("Error: no argument after room e.g. !room add #general")
+                        return;
+                }
             case "help":
-                message.channel.send("Available Commands\n\n" + "!admin - Try me\n" + "!help - Lists all available commands\n" + "!hint - Gives you a hint for the number\n" + "!whisper - Coming soon");
+                message.channel.send("Available Commands\n\n" + "!help - Lists all available commands\n" + "!mod [add/remove] [role] - Manage your mods (mod only)\n" + "!hint - Gives you a hint for the number\n" + "room [add/remove] [channel] - Manage your secret rooms (mod only)");
                 return;
             case "hint":
-                message.channel.send(hintNumber(serverConfigNew.guessNumber));
+                message.channel.send(hintNumber(serverConfig.guessNumber));
                 return;
             case "owner":
                 message.channel.send("The owner of the server is " + "<@" + guildOwner + ">");
             case "room":
-                let argRoom;
-                if(!hasMod(memberRoles, serverConfigNew.modRoles)) {
+                if(!hasMod(memberRoles, serverConfig.modRoles) || message.author.id == guildOwner) {
                     message.channel.send("You don't have permissions to perform that command.")
                     return;
                 }
-                try {
-                    console.log(args[2])
-                    argRoom = args[2].replace(/[^\w\s]/gi, '');
+                let argRoom;
+                switch (args[1]){
+                    case undefined && args[0] == "list":
+                        break;
+                    case undefined:
+                        message.channel.send("Error: no room added e.g. !room add #general");
+                        return;
+                    default:
+                        argRoom = args[1].replace(/[^\w\s]/gi, '');
+                        if (!isNumber(argRoom)){
+                            message.channel.send("Error: Not a number. Please submit a valid room");
+                            return;
+                        }
+                        if (message.guild.channels.cache.get(argRoom) === undefined){
+                            message.channel.send("Error: Channel ID does not exist on this server. Please submit a valid channel")
+                            return;
+                        }
+                        break;
                 }
-                catch (err){
-                    console.log("Channel formatting error (or doesn't exist)");
-                    message.channel.send("Please format the command properly e.g. !room add #general")
-                    return;
-                }
-                if(message.guild.channels.cache.get(argRoom)=== undefined)
-                {
-                    message.channel.send("Please format the command properly e.g. !room add #general")
-                    return;
-                }
-                switch(args[1]){
+                switch(args[0]){
+                    case undefined:
+                        message.channel.send("Error: no add/remove command e.g. !room add #general");
+                        return;
+                    case "list":
+                        message.channel.send("Here's a list of all channels as secret rooms\n" + serverConfig.secretRooms);
+                        return;
                     case "add":
-                        if(isSecretRoom(argRoom, serverConfigNew.secretRooms)){
-                            serverConfigNew.secretRooms.push(argRoom);
-                            break;
+                        if(checkId(argRoom, serverConfig.secretRooms)){
+                            message.channel.send("Error: Channel is already added");
+                            return;
                         }
                         else
                         {
-                            message.channel.send("Room is already added");
+                            serverConfig.secretRooms = addId(argRoom, serverConfig.secretRooms);
+                            message.channel.send("Channel <#" + argRoom + "> has successfully been added");
+                            updateConfig(serverConfig,guildId);
                             return;
                         }
                     case "remove":
-                        if(isSecretRoom(argRoom, serverConfigNew)){
-                            serverConfigNew.secretRooms = removeRoom(argRoom, serverConfigNew);
-                            break;
+                        if(checkId(argRoom, serverConfig.secretRooms)){
+                            serverConfig.secretRooms = removeId(argRoom, serverConfig.secretRooms);
+                            message.channel.send("Channel <#" + argRoom + "> has successfully been removed");
+                            updateConfig(serverConfig,guildId);
+                            return;
                         }
                         else{
-                            message.channel.send("Room is not on the list")
+                            message.channel.send("Channel is not on the list")
                             return;
                         }
                     default:
-                        message.channel.send("Please format the command properly e.g. !room add #general")
+                        message.channel.send("Error: no argument after room e.g. !room add #general")
                         return;
                 }
-            case "whisper":
-                return;
+                case "trigger":
+                    let argTrigger;
+                    switch (args[1]){
+                        case undefined:
+                            message.channel.send("Error: no trigger added e.g. !trigger add #general");
+                            return;
+                        default:
+                            if(isNumber(args[2])){
+                                message.channel.send("Error: cannot use number as a trigger");
+                            }
+                            triggerWord = args[1]
+                            triggerImage = args[2]
+                    }
+                    switch(args[0]){
+                        case undefined:
+                            message.channel.send("Error: no add/remove command e.g. !room add #general");
+                            return;
+                        case "list":
+                            message.channel.send("Here's a list of all channels as secret rooms\n" + serverConfig.secretRooms);
+                            return;
+                        case "add":
+                            if(checkId(argRoom, serverConfig.secretRooms)){
+                                message.channel.send("Error: Channel is already added");
+                                return;
+                            }
+                            else
+                            {
+                                serverConfig.secretRooms = addId(argRoom, serverConfig.secretRooms);
+                                message.channel.send("Channel <#" + argRoom + "> has successfully been added");
+                                updateConfig(serverConfig,guildId);
+                                return;
+                            }
+                        case "remove":
+                            if(checkId(argRoom, serverConfig.secretRooms)){
+                                serverConfig.secretRooms = removeId(argRoom, serverConfig.secretRooms);
+                                message.channel.send("Channel <#" + argRoom + "> has successfully been removed");
+                                updateConfig(serverConfig,guildId);
+                                return;
+                            }
+                            else{
+                                message.channel.send("Channel is not on the list")
+                                return;
+                            }
+                        default:
+                            message.channel.send("Error: no argument after room e.g. !room add #general")
+                            return;
+                    }                
+                break;
             default:
-                message.channel.send("That command doesn't exist. Try again!");    
+                message.channel.send("Invalid command. See !help for a list of available commands");    
                 return;
         }
     }
-
     //Triggers
-    else if (!message.content.startsWith(prefix) && !isNumeric(message.content)) {
-        let args = [];
-        args =  message.content.toLowerCase().split(" ");
-        let i = 0;
-        
-        while(i < args.length) {
-           switch (args[i]) {
-                case "cunt":
-                    message.channel.send({files: ["https://i.imgur.com/YfTpN6L.jpg"]});
+    else if (!message.content.startsWith(prefix) && !isNumber(message.content)) {
+        let args = message.content.toLowerCase().split(" ");
+        for(i = 0; i < args.length; i++) {
+            for (j = 0; j < serverConfig.triggers.length; j++) {
+                if (args[i] === serverConfig.triggers[j].triggerWord){
+                    message.channel.send({files: ["images/" + guildId + "/" + serverConfig.triggers[j].triggerLink]});
                     return;
-                case "riccardo":
-                    message.channel.send({files: ["https://i.imgur.com/IvElYDw.gif"]});
-                    return;    
-                case "sweden":
-                    message.channel.send({files: ["https://i.imgur.com/npzZ1X5.jpg"]});
-                    return;    
-                default:
-                    i++
-                    break;
-           }
+                }
+            }
         }
     }
 
     //Number guessing
-    else if(isNumeric(message.content) && isSecretRoom(message.channel.id, serverConfigNew.secretRooms)) {
-        switch(checkNumber(message.content, serverConfigNew.guessNumber)){
+    else if(isNumber(message.content) && checkId(message.channel.id, serverConfig.secretRooms)) {
+        switch(checkNumber(message.content, serverConfig.guessNumber)){
             case 1:
                 message.channel.send("You guessed the right number. Congratulations!");
-                serverConfigNew.guessNumber = serverConfigNew.guessNumber = newNumber();
-                console.log("The new number is " + serverConfigNew.guessNumber);
+                serverConfig.guessNumber = serverConfig.guessNumber = newNumber();
+                console.log("Number guessed on " + guildId + ". New number is" + serverConfig.guessNumber);
+                updateConfig(serverConfig, guildId);
                 break;
             case 2:
                 message.channel.send("Getting warmer!");
@@ -163,22 +253,28 @@ client.on('message', message => {
                 return;
         }
     }
-
-    //Commits any new changes
-    if (JSON.stringify(serverConfigNew) !== JSON.stringify(serverConfig))
-    {
-        console.log("Changes in file detected. Updating file");
-        fs.writeFileSync("json/"+ guildId + ".json", JSON.stringify(serverConfigNew, null, 2));
-    }
 })
 
 //General functions
+
+//n = serverConfig, o = GuildID
+function updateConfig(n,o){
+        fs.writeFileSync("json/"+ o + ".json", JSON.stringify(n, null, 2));
+        console.log("Updated config file for server " + o);
+}
 function isArrayEmpty(n){
-    if (n.length-1 === 0)
-    return false;
+    if (n.length-1 > 0) {
+        return false;
+    }
+    else {
+        return true;
+    }
 }
 
-//Permission functions
+function isNumber(n){
+    return !isNaN(parseInt(n));
+}
+
 function hasMod(n,o){
     if (isArrayEmpty(o)){
         return 0;
@@ -191,8 +287,9 @@ function hasMod(n,o){
     return 0;
 }
 
-//Room commands
-function isSecretRoom(n, o){    
+//Array checking functions
+//n = user submitted array  o = serverConfig.[array]
+function checkId(n, o){    
     if (isArrayEmpty(o)){
         return 0;
     }
@@ -204,21 +301,22 @@ function isSecretRoom(n, o){
     return 0;
 }
 
-function removeRoom(n, o){
-    let newRoomList = o
+function removeId(n, o){
+    let newList = o
     for(i = 0; i < o.length; i++){
         if (n == o[i]){
-            newRoomList.splice(i,1)
-            return newRoomList;
+            newList.splice(i,1)
+            return newList;
         }
     }
 }
 
-//number functions
-function isNumeric(n){
-    return !isNaN(parseFloat(n)) && isFinite(n);
+function addId(n, o) {
+    o.push(n)
+    return o;
 }
 
+//Number functions
 //n = user subimitted, o = actual number
 function checkNumber(n, o){
     if (n == o){
