@@ -43,18 +43,18 @@ client.on('message', message => {
     //Commands
     else if(message.content.startsWith(prefix)) {
             
-        const args = message.content.toLowerCase().slice(prefix.length).trim().split(/ +/);
+        const args = message.content.slice(prefix.length).trim().split(/ +/);
         const command = args.shift();
 
         switch (command) {
             case "test":
-                if(!hasMod(memberRoles, serverConfig.modRoles) || message.author.id == guildOwner) {
+                if(message.author.id == guildOwner) {
                     console.log(serverConfig);
                 }
                 return;
             case "mod":
-                if(!hasMod(memberRoles, serverConfig.modRoles) || message.author.id == guildOwner) {
-                    message.channel.send("you don't have permissions to perform that command.")
+                if(!hasMod(memberRoles, serverConfig.modRoles) && message.author.id != guildOwner) {
+                    message.channel.send("You don't have permission to perform that command.")
                     return;
                 }
                 let argMod;
@@ -118,8 +118,8 @@ client.on('message', message => {
             case "owner":
                 message.channel.send("The owner of the server is " + "<@" + guildOwner + ">");
             case "room":
-                if(!hasMod(memberRoles, serverConfig.modRoles) || message.author.id == guildOwner) {
-                    message.channel.send("You don't have permissions to perform that command.")
+                if(!hasMod(memberRoles, serverConfig.modRoles) && message.author.id != guildOwner) {
+                    message.channel.send("You don't have permission to perform that command.")
                     return;
                 }
                 let argRoom;
@@ -202,7 +202,7 @@ client.on('message', message => {
                         }
                         
                         let urlSplit = args[2].split(".");
-                        let validTypes = ["bmp", "jpg", "png", "jpeg" ];
+                        let validTypes = ["bmp", "jpg", "png", "jpeg", "gif"];
                         if (!validateURL(urlSplit, validTypes)){
                             message.channel.send("Error: Must provide direct link to image e.g. https://www.website.com/image.jpg")
                             return;
@@ -215,7 +215,7 @@ client.on('message', message => {
 
                 switch (args[0]){
                     case "add":
-                        if(checkTrigger(argTrigger, serverConfig.triggers)) {
+                        if(checkTrigger(argTrigger, serverConfig.triggers) == 1) {
                             serverConfig.triggers = addId(argTrigger, serverConfig.triggers);
                             message.channel.send("Trigger `" + triggerWord + "` successfully added");
                             updateConfig(serverConfig, guildId);
@@ -232,10 +232,12 @@ client.on('message', message => {
                         return;
                 
                 }
-
-            
             case "triggers":
-                let a = "Available triggers\n```"
+                if(serverConfig.triggers.length == 0){
+                    message.channel.send("No triggers have been added yet to the server")
+                    return;
+                }
+            let a = "Available triggers\n```"
                 for(i =0; i < serverConfig.triggers.length; i++){
                     a = a + serverConfig.triggers[i].triggerWord + " "
                     if(i == serverConfig.triggers.length-1){
@@ -289,11 +291,11 @@ function updateConfig(n,o){
         console.log("Updated config file for server " + o);
 }
 function isArrayEmpty(n){
-    if (n.length-1 > 0) {
-        return false;
+    if (n === undefined || n.length == 0) {
+        return true;
     }
     else {
-        return true;
+        return false;
     }
 }
 
@@ -316,10 +318,11 @@ function hasMod(n,o){
 //Checking triggers
 function checkTrigger(n, o){
     if (isArrayEmpty(o)){
-        return 0;
+        return 1;
     }
     for(i = 0; i < o.length; i++){
-        if (n.triggerWord == o[i].triggerWord){
+        if (n.triggerWord == o[i].triggerWord) {
+            console.log (n.triggerWord + "   " + o[i].triggerWord)
             return 0;
         }
     }
@@ -328,7 +331,7 @@ function checkTrigger(n, o){
 
 
 function validateURL(n, o){
-    for(i=0; i < n.length; i++){
+    for(i=0; i < o.length; i++){
         if (n[n.length-1] === o[i]){
             return 1;
         }
