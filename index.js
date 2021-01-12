@@ -4,6 +4,7 @@ const client = new Discord.Client();
 
 //Filesystem required for reading and writing files
 var fs = require('fs');
+const { SSL_OP_SSLEAY_080_CLIENT_DH_BUG } = require('constants');
 
 client.login(token);
 client.once('ready', () => {
@@ -110,7 +111,7 @@ client.on('message', message => {
                 "!hint - Gives you a hint for the number\n" + 
                 "!room [add/remove] [channel] - Manage your secret rooms (mod only)\n" +
                 "!trigger [add/remove] [word] [URL] - Manage your trigger words (remove is mod only)\n" +
-                "!triggers - displays all avaiable triggers");
+                "!triggers - displays all available triggers");
                 return;
             case "hint":
                 message.channel.send(hintNumber(serverConfig.guessNumber));
@@ -150,7 +151,7 @@ client.on('message', message => {
                         return;
                     case "add":
                         if(checkId(argRoom, serverConfig.secretRooms)){
-                            message.channel.send("Error: Channel is already added");
+                            message.channel.send("Error: channel is already added");
                             return;
                         }
                         else
@@ -184,8 +185,12 @@ client.on('message', message => {
                         message.channel.send("Error: did not include a trigger word e.g. !trigger add funny https://website.com/image.jpg");
                         return;
                     default:
+                        if(hasSpecialCharaters(args[1])){
+                            message.channel.send("Error: trigger word cannot contain special characters");
+                            return;
+                        }
                         if(isNumber(args[1])){
-                            message.channel.send("Error: cannot use number as a trigger");
+                            message.channel.send("Error: trigger word cannot be a number (you can mix alphanumeric values)");
                             return;
                         }
                 }
@@ -201,18 +206,18 @@ client.on('message', message => {
                             url = new URL(args[2])
                         }
                         catch (_) {
-                            message.channel.send("Error: Invalid URL e.g. https://www.website.com/image.jpg")
+                            message.channel.send("Error: invalid URL e.g. https://www.website.com/image.jpg")
                             return;
                         }
                         
                         let urlSplit = args[2].split(".");
                         let validTypes = ["bmp", "jpg", "png", "jpeg", "gif"];
                         if (!validateURL(urlSplit, validTypes)){
-                            message.channel.send("Error: Must provide direct link to image e.g. https://www.website.com/image.jpg")
+                            message.channel.send("Error: must provide direct link to image e.g. https://www.website.com/image.jpg")
                             return;
                         }
 
-                        if(checkTrigger(argTrigger, serverConfig.triggers) == 1) {
+                        if(checkTrigger(argTrigger, serverConfig.triggers)) {
                             serverConfig.triggers = addId(argTrigger, serverConfig.triggers);
                             message.channel.send("Trigger `" + triggerWord + "` successfully added");
                             updateConfig(serverConfig, guildId);
@@ -223,13 +228,13 @@ client.on('message', message => {
                             return;
                         }
                     case "remove":
-                        if(checkTrigger(argTrigger, serverConfig.triggers) == 0) {
+                        if(checkTrigger(argTrigger, serverConfig.triggers)) {
                             serverConfig.triggers = removeTrigger(triggerWord, serverConfig.triggers);
                             message.channel.send("Trigger `" + triggerWord + "` successfully removed");
                             updateConfig(serverConfig, guildId);
                         }
                         else{
-                            message.channel.send("Error: Trigger word does not exist on the server")
+                            message.channel.send("Error: trigger word does not exist on the server")
                         }
                             return;                        
                     default:
@@ -251,7 +256,7 @@ client.on('message', message => {
                 message.channel.send(a);
                 return;
             default:
-                message.channel.send("Invalid command. See !help for a list of available commands");    
+                message.channel.send("Error: invalid command. See !help for a list of available commands");    
                 return;
         }
     }
@@ -307,29 +312,39 @@ function isNumber(n){
     return !isNaN(parseInt(n));
 }
 
+function hasSpecialCharaters(n){
+    const specialCharacters = /[^a-zA-Z0-9\-\/]/;
+    if(specialCharacters.test(n)){
+        return true;
+    }
+    else{
+        return false;
+    }
+}
+
 function hasMod(n,o){
     if (isArrayEmpty(o)){
-        return 0;
+        return false;
     }
     for(i = 0; i < o.length; i++){
         if (n.find(r => r.id == o[i])){
-            return 1;
+            return true;
         }
     }
-    return 0;
+    return false;
 }
 
 //Trigger functions
 function checkTrigger(n, o){
     if (isArrayEmpty(o)){
-        return 1;
+        return true;
     }
     for(i = 0; i < o.length; i++){
         if (n.triggerWord == o[i].triggerWord) {
-            return 0;
+            return false;
         }
     }
-    return 1;
+    return true;
 }
 
 function removeTrigger(n, o){
@@ -342,14 +357,13 @@ function removeTrigger(n, o){
     }
 }
 
-
 function validateURL(n, o){
     for(i=0; i < o.length; i++){
         if (n[n.length-1] === o[i]){
-            return 1;
+            return true;
         }
     }
-    return 0;
+    return false;
 }
 
 //Array functions
