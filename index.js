@@ -1,10 +1,18 @@
+//Filesystem required for reading and writing files
+const fs = require('fs');
+
 const Discord = require('discord.js');
 const {prefix, token} = require('./config.json');
 const client = new Discord.Client();
 
-//Filesystem required for reading and writing files
-var fs = require('fs');
-const { SSL_OP_SSLEAY_080_CLIENT_DH_BUG } = require('constants');
+//loading command files
+client.commands = new Discord.Collection();
+const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
+/*
+for (const file of commandFiles) {
+    const command = require("./commands/${file}");
+}
+*/
 
 client.login(token);
 client.once('ready', () => {
@@ -17,29 +25,50 @@ client.on('ready', () => {
     client.user.setActivity("!help for commands", {type: "LISTENING"});
   })
 
+//Role assignment for voice channel join
+client.on('voiceStateUpdate', (oldState, newState) => {
+    // Triggered if the user left a channel
+    if (!newState.channel || !newState.member){
+        newState.member.roles.remove("793013387612520468")
+    }
+
+    // Triggered when the user joined a specific channel
+    //const testChannel = newState.guild.channels.cache.find(c => c.name === 'One');
+    //if (newState.channelID === testChannel.id) {
+
+    
+    //Triggered if the user joined a channel
+        if (!newState.channel || !newState.member){
+            // Add the role to the user if they don't already have it
+            if (!newState.member.roles.cache.has("793013387612520468")) newState.member.roles.add("793013387612520468");
+    }
+});
+
 //Event Message send
 client.on('message', message => {
     
     //Variables
-    const guildId = message.guild.id;
-    const guildOwner  = message.guild.owner.user.id;
+    const guildId = message.guild.id.toString();
+    const guildOwner  = message.guild.owner.user.id.toString();
     const memberRoles = message.member.roles.cache;
-    
+
+    //Loads audio file names from server folder
+    //const commandFiles = fs.readdirSync('./audio/${guildId}/').filter(file => file.endsWith('.mp3'));
+
+
     //Loads server config file. Creates new if it doesn't already exist.
     let serverConfig;
     try{
-        serverConfig = JSON.parse(fs.readFileSync("json/" + guildId + ".json"));
+        serverConfig = JSON.parse(fs.readFileSync(`json/${guildId}.json`));
     }
     catch(err){
-        serverConfig = {"guessNumber": newNumber(),"secretRooms": [],"modRoles": [], "triggers":[]};
-        console.log("config file for server " + guildId + " does not exist. Creating a new one")
-        fs.writeFileSync("json/"+ guildId + ".json", JSON.stringify(serverConfig, null, 2));
+        serverConfig = {"guessNumber": newNumber(),"secretRooms": [],"modRoles": [], "triggers":[], "voice": ""};
+        console.log(`config file for server ${guildId} does not exist. Creating a new one`)
+        fs.writeFileSync(`json/${guildId}.json`, JSON.stringify(serverConfig, null, 2));
     }
 
     //Checks if bot sent the message
-    if (message.author.bot) {
-        return;
-    }
+    if (message.author.bot) return;
 
     //Commands
     else if(message.content.startsWith(prefix)) {
@@ -49,9 +78,14 @@ client.on('message', message => {
 
         switch (command) {
             case "test":
-                if(message.author.id == guildOwner) {
-                    console.log(serverConfig);
-                }
+                if(message.author.id != guildOwner) return;
+                
+                //console.log ("Roles Map: " + message.member.roles.cache);
+                //console.log(`Hello ${guildId} welcome back`)
+
+                console.log ("Roles IDs: " + message.member.roles.cache.map(r => `${r.id}`));
+                console.log ("Roles Names: " + message.member.roles.cache.map(r => `${r.name}`));
+                
                 return;
             case "mod":
                 if(!hasMod(memberRoles, serverConfig.modRoles) && message.author.id != guildOwner) {
@@ -86,14 +120,14 @@ client.on('message', message => {
                         }
                         else {
                             serverConfig.modRoles = addId(argMod, serverConfig.modRoles);
-                            message.channel.send("Role <@&" + argMod + "> has successfully been added");
+                            message.channel.send(`Role <@&${argMod}> has successfully been added`);
                             updateConfig(serverConfig,guildId);
                             return;
                         }
                     case "remove":
                         if(checkId(argMod, serverConfig.modRoles)) {
                             serverConfig.modRoles = removeId(argMod, serverConfig.modRoles);
-                            message.channel.send("Role <@&" + argMod + "> has successfully been removed");
+                            message.channel.send(`Role <@&${argMod}> has successfully been removed`);
                             updateConfig(serverConfig,guildId);
                             return;
                         }
@@ -117,7 +151,7 @@ client.on('message', message => {
                 message.channel.send(hintNumber(serverConfig.guessNumber));
                 return;
             case "owner":
-                message.channel.send("The owner of the server is " + "<@" + guildOwner + ">");
+                message.channel.send(`The owner of the server is <@${guildOwner}>`);
             case "room":
                 if(!hasMod(memberRoles, serverConfig.modRoles) && message.author.id != guildOwner) {
                     message.channel.send("You don't have permission to perform that command.")
@@ -146,25 +180,22 @@ client.on('message', message => {
                     case undefined:
                         message.channel.send("Error: no add/remove command e.g. !room add #general");
                         return;
-                    case "list":
-                        message.channel.send("Here's a list of all channels as secret rooms\n" + serverConfig.secretRooms);
-                        return;
                     case "add":
                         if(checkId(argRoom, serverConfig.secretRooms)){
-                            message.channel.send("Error: channel is already added");
+                            message.channel.send(`Error: channel <#${argRoom}> is already added`);
                             return;
                         }
                         else
                         {
                             serverConfig.secretRooms = addId(argRoom, serverConfig.secretRooms);
-                            message.channel.send("Channel <#" + argRoom + "> has successfully been added");
+                            message.channel.send(`Channel <#${argRoom}> has successfully been added`);
                             updateConfig(serverConfig,guildId);
                             return;
                         }
                     case "remove":
                         if(checkId(argRoom, serverConfig.secretRooms)){
                             serverConfig.secretRooms = removeId(argRoom, serverConfig.secretRooms);
-                            message.channel.send("Channel <#" + argRoom + "> has successfully been removed");
+                            message.channel.send(`Channel <#${argRoom}> has successfully been removed`);
                             updateConfig(serverConfig,guildId);
                             return;
                         }
@@ -176,6 +207,9 @@ client.on('message', message => {
                         message.channel.send("Error: no argument after room e.g. !room add #general")
                         return;
                 }
+            case "rooms":
+                    message.channel.send(`Here's a list of all channels as secret rooms\n${serverConfig.secretRooms}`);
+                    return;
             case "trigger":
                 switch (true){
                     case args[0] === undefined:
@@ -219,18 +253,18 @@ client.on('message', message => {
 
                         if(checkTrigger(argTrigger, serverConfig.triggers)) {
                             serverConfig.triggers = addId(argTrigger, serverConfig.triggers);
-                            message.channel.send("Trigger `" + triggerWord + "` successfully added");
+                            message.channel.send(`Trigger **${triggerWord}** successfully added`);
                             updateConfig(serverConfig, guildId);
                             return;
                         }
                         else{
-                            message.channel.send("Trigger word `" + triggerWord + "` already exists");
+                            message.channel.send(`Trigger **${triggerWord}** already exists`);
                             return;
                         }
                     case "remove":
                         if(checkTrigger(argTrigger, serverConfig.triggers)) {
                             serverConfig.triggers = removeTrigger(triggerWord, serverConfig.triggers);
-                            message.channel.send("Trigger `" + triggerWord + "` successfully removed");
+                            message.channel.send(`Trigger **${triggerWord}** successfully removed`);
                             updateConfig(serverConfig, guildId);
                         }
                         else{
@@ -254,6 +288,8 @@ client.on('message', message => {
                     }
                 }
                 message.channel.send(a);
+                return;
+            case "voice":
                 return;
             default:
                 message.channel.send("Error: invalid command. See !help for a list of available commands");    
@@ -279,7 +315,7 @@ client.on('message', message => {
             case 1:
                 message.channel.send("You guessed the right number. Congratulations!");
                 serverConfig.guessNumber = serverConfig.guessNumber = newNumber();
-                console.log("Number guessed on " + guildId + ". New number is" + serverConfig.guessNumber);
+                console.log(`Number guessed on ${guildId}. New number is ${serverConfig.guessNumber}`);
                 updateConfig(serverConfig, guildId);
                 break;
             case 2:
@@ -297,15 +333,11 @@ client.on('message', message => {
 //n = serverConfig, o = GuildID
 function updateConfig(n,o){
         fs.writeFileSync("json/"+ o + ".json", JSON.stringify(n, null, 2));
-        console.log("Updated config file for server " + o);
+        console.log(`Updated config file for server ${o}`);
 }
 function isArrayEmpty(n){
-    if (n === undefined || n.length == 0) {
-        return true;
-    }
-    else {
-        return false;
-    }
+    if (n === undefined || n.length == 0) return true;
+    else return false;
 }
 
 function isNumber(n){
@@ -314,35 +346,24 @@ function isNumber(n){
 
 function hasSpecialCharaters(n){
     const specialCharacters = /[^a-zA-Z0-9\-\/]/;
-    if(specialCharacters.test(n)){
-        return true;
-    }
-    else{
-        return false;
-    }
+    if(specialCharacters.test(n)) return true;
+    else return false;
 }
 
+//Role functions
 function hasMod(n,o){
-    if (isArrayEmpty(o)){
-        return false;
-    }
+    if (isArrayEmpty(o)) return false;
     for(i = 0; i < o.length; i++){
-        if (n.find(r => r.id == o[i])){
-            return true;
-        }
+        if (n.find(r => r.id == o[i])) return true;
     }
     return false;
 }
 
 //Trigger functions
 function checkTrigger(n, o){
-    if (isArrayEmpty(o)){
-        return true;
-    }
+    if (isArrayEmpty(o)) return true;
     for(i = 0; i < o.length; i++){
-        if (n.triggerWord == o[i].triggerWord) {
-            return false;
-        }
+        if (n.triggerWord == o[i].triggerWord) return false;
     }
     return true;
 }
@@ -359,9 +380,7 @@ function removeTrigger(n, o){
 
 function validateURL(n, o){
     for(i=0; i < o.length; i++){
-        if (n[n.length-1] === o[i]){
-            return true;
-        }
+        if (n[n.length-1] === o[i]) return true;
     }
     return false;
 }
@@ -369,13 +388,9 @@ function validateURL(n, o){
 //Array functions
 //n = user submitted array  o = serverConfig.[array]
 function checkId(n, o){    
-    if (isArrayEmpty(o)){
-        return 0;
-    }
+    if (isArrayEmpty(o)) return 0;
     for(i = 0; i < o.length; i++){
-        if (n == o[i]){
-            return true;
-        }
+        if (n == o[i]) return true;
     }
     return 0;
 }
@@ -398,24 +413,19 @@ function addId(n, o) {
 //Number functions
 //n = user subimitted, o = actual number
 function checkNumber(n, o){
-    if (n == o){
-        return 1;
-    }
-    else if (n > o-10 || n < o+10){
-        return 2;
-    }
-    else{
-        return 3;
+    switch(true){
+        case n == o:
+            return 1;
+        case n > o-10 || n < o+10:
+            return 2;
+        default:
+            return 3;
     }
 }
 
 function hintNumber(n) {
-    if (n > 50) {
-        return("Here's your hint. The number is between 51 and 101");
-    }
-    else {
-        return("Here's your hint. The number is betweeen 1 and 50");
-    }    
+    if (n > 50) return("Here's your hint. The number is between 51 and 101");
+    else return("Here's your hint. The number is betweeen 1 and 50");
 }
 
 function newNumber(n) {
