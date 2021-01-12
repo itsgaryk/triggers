@@ -31,25 +31,32 @@ client.on('ready', () => {
 
 //Event - Status change to voice channels
 client.on('voiceStateUpdate', (oldState, newState) => {
+    
+    //console.log(`Old channel ID ${oldState.channelID}`);
+    //console.log(`New channel ID ${newState.channelID}`);
+    //console.log("Channel old" , oldState);
 
     const serverConfig = JSON.parse(fs.readFileSync(`json/${newState.guild.id}.json`));
 
-    //ignores dev voice channel
-    if (r => r.channel.has("798573191936081961") && client.token.search("Nzkz")) return;
+    //Ignores dev channel if client is main bot
+    if (newState.channelID == "798573191936081961" && client.user.id === "793011221581660190") return;
+    //Ignores all other channels if client is dev bot
+    if (newState.channelID != "798573191936081961" && client.user.id === "795940893709959178") return;
 
-    //Joined a channel
-    if (newState.channel || newState.member){
-        console.log("adding role");
-        if (!newState.member.roles.cache.has(`${serverConfig.voiceRole}`)) newState.member.roles.add(`${serverConfig.voiceRole}`);
-        return;
-    }
-    //Left a channel
-    if (!newState.channel || !newState.member){
+    //if ((newState.deaf != oldState.deaf) || (newState.mute != oldState.mute) || (newState.streaming != oldState.streaming)) return;
+    if ((newState.deaf != oldState.deaf) || (newState.streaming != oldState.streaming)) return;
+
+    if (!newState.channel || !newState.member) {
+        newState.member.roles.remove(`${serverConfig.voiceRole}`); // Triggered if the user left a channel
         console.log("removing role");
-        newState.member.roles.remove(`${serverConfig.voiceRole}`);
+        newState.channelID("795954126433157151")
         return;
     }
-
+    if (newState.channel) { // Triggered when the user joined the channel we tested for
+        console.log("adding role");
+        if (!newState.member.roles.cache.has(`${serverConfig.voiceRole}`)) newState.member.roles.add(`${serverConfig.voiceRole}`); // Add the role to the user if they don't already have it
+        return;
+    }
 });
 
 //Event - When a message has been sent
@@ -84,11 +91,13 @@ client.on('message', message => {
         switch (command) {
             case "test":
                 if(message.author.id != guildOwner) return;
-                
+                if (message.guild.channels.cache.find(r => r.id == ("798573191936081961"))) console.log("found the channel");
+                if (client.token.search("Nzkz")) console.log("Found the token!")
+
                 //console.log ("Roles Map: " + message.member.roles.cache);
                 //console.log(`Hello ${guildId} welcome back`)
 
-                console.log (serverConfigNew)
+                console.log (serverConfig)
                 console.log ("Roles IDs: " + message.member.roles.cache.map(r => `${r.id}`));
                 console.log ("Roles Names: " + message.member.roles.cache.map(r => `${r.name}`));
                 
