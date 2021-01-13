@@ -134,7 +134,7 @@ client.on('message', message => {
                 
                 let argMod = args[1].replace(/[^\w\s]/gi, '');
 
-                if (xOr(!isNumber(argMod) || message.guild.roles.cache.find(r => r.id == `${argMod}`))){
+                if (!message.guild.roles.cache.find(r => r.id == `${argMod}`)){
                     message.channel.send("Error: invalid Role ID. Please submit a valid role");
                     return;
                 }
@@ -176,7 +176,7 @@ client.on('message', message => {
                 
                 let argRoom = args[1].replace(/[^\w\s]/gi, '');
 
-                if (xOr(!isNumber(argRoom), message.guild.channels.cache.find(r => r.id == `${argRoom}`))){
+                if (!message.guild.channels.cache.find(r => r.id == `${argRoom}`)){
                     message.channel.send("Error: invalid Channel ID. Please submit a valid channel");
                     return;
                 }
