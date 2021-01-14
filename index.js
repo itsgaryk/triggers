@@ -31,35 +31,29 @@ client.on('ready', () => {
 
 //Event - Status change to voice channels
 client.on('voiceStateUpdate', (oldState, newState) => {
-    
     const serverConfig = JSON.parse(fs.readFileSync(`json/${newState.guild.id}.json`));
 
-    console.log("New Channel state: ",newState.channelID, "\tOld Channel: ", oldState.channelID);
-
-    //Ignores dev channel if client is main bot
-    if(((newState.channelID == "798573191936081961" && oldState.channelID == null) || (!newState.channelID && oldState.channelID == "798573191936081961")) && client.user.id == "793011221581660190") return;
+    //Ignores dev channel if client is live bot
+    if((newState.channelID == "798573191936081961" ^ oldState.channelID == "798573191936081961") && client.user.id == "793011221581660190") return;
 
     //Ignores all other channels if client is dev bot
-    if(((newState.channelID != "798573191936081961" && oldState.channelID == null) || (!newState.channelID && oldState.channelID != "798573191936081961")) && client.user.id == "795940893709959178") return;
+    if((newState.channelID != "798573191936081961" ^ oldState.channelID == "798573191936081961") && client.user.id == "795940893709959178") return;
 
-    console.log("test");
-
-    if (newState.channelID && !newState.member.roles.cache.find(r => r.id == `${serverConfig.voice}`)){
+    if (((newState.channelID && !newState.member.roles.cache.find(r => r.id == serverConfig.voice) && !newState.member.user.bot))){
         console.log("adding role");
-        newState.member.roles.add(`${serverConfig.voice}`)
+        newState.member.roles.add(serverConfig.voice)
         return;
     }
 
-    if (newState.channelID == null) {
+    if (newState.channelID == null && !newState.member.user.bot) {
         console.log("removing role");
-        newState.member.roles.remove(`${serverConfig.voice}`);
+        newState.member.roles.remove(serverConfig.voice);
         return;
     }
-    debugger;
 });
 
 //Event - When a message has been sent
-client.on('message', message => {
+client.on('message', async message => {
 
     //Variables
     const guildId = message.guild.id.toString();
@@ -100,15 +94,18 @@ client.on('message', message => {
                 //console.log (serverConfig)
                 //console.log ("Roles IDs: " + message.member.roles.cache.map(r => `${r.id}`));
                 //console.log ("Roles Names: " + message.member.roles.cache.map(r => `${r.name}`));
-                console.log(!hasMod(serverConfig.modRoles, memberRoles), message.author.id != guildOwner)
+                console.log(message.member.hasPermission("MANAGE_ROLES"))
+                console.log(message.guild.member("82919694574551040").hasPermission("MANAGE_ROLES"))
+                console.log(message.guild.members.cache.get("82919694574551040"))
+                //console.log((message.guild.members.cache.get("793011221581660190"))
+                //.hasPermission("MANAGE_ROLES"));
+                
+                //console.log(!hasMod(serverConfig.modRoles, memberRoles), message.author.id != guildOwner)
 
-                console.log(serverConfig.secretRooms)
+                //console.log(serverConfig.secretRooms)
 
-                console.log(serverConfig.triggers[0].triggerWord)
-                console.log(serverConfig.triggers.map(r => r.triggerWord))
-                //console.log(serverConfig.triggers.getJSONArray(r => r.triggerWord))
-                if(message.member.roles.cache.find(r => r.id == serverConfig.memberRoles))
-                    console.log("confirmed");
+                //console.log(serverConfig.triggers[0].triggerWord)
+                //console.log(serverConfig.triggers.map(r => r.triggerWord))
                 return;
             case "help":
                 message.channel.send("Available Commands\n\n" + "!help - Lists all available commands\n" + 
@@ -214,6 +211,31 @@ client.on('message', message => {
                     message.channel.send("All channels as secret rooms\n```" + roomList.join("  ") + "```");
                     return;
                 }
+            case "sound":
+                /*
+                if(args[0] === undefined || args[1] === undefined || args[2] === undefined){
+                    message.channel.send("Error: missing arguments e.g. !sound add  [category]");
+                    return;
+                }
+                */
+                if (message.member.voice.channel) {
+                    const connection = await message.member.voice.channel.join();
+                }
+                
+                const dispatcher = connection.play('audio/airhorn.mp3');
+
+                dispatcher.on('start', () => {
+                    console.log('audio is now playing!');
+                });
+                
+                dispatcher.on('finish', () => {
+                    console.log('audio has finished playing!');
+                    return;
+                });
+                
+                dispatcher.on('error', console.error);
+                
+                return;
             case "trigger":
                 if(args[0] === undefined || args[1] === undefined){
                     message.channel.send("Error: missing arguments e.g. !trigger add funny https://website.com/image.jpg");
