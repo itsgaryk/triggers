@@ -168,12 +168,18 @@ client.on('message', async message => {
             case "room":
                 if(args[0] == undefined && args[1] == undefined)
                 {
-                    if(serverConfig.secretRoom.rooms.find(r => r.userId === message.author.id)){
-                        message.channel.send(`Error: You already have a secret room. Don't be greedy!`);
-                        return;
-                    }
                     if (!serverConfig.secretRoom.categoryId){
                         message.channel.send("Error: no category configured !room category [category name]")
+                        return;
+                    }
+
+                    if(!serverConfig.secretRoom.name){
+                        message.channel.send("Error: no name configured !room name [room name]");
+                        return;
+                    }
+
+                    if(serverConfig.secretRoom.rooms.find(r => r.userId === message.author.id)){
+                        message.channel.send(`Error: You already have a secret room. Don't be greedy!`);
                         return;
                     }
                     let newChannel;
@@ -206,20 +212,27 @@ client.on('message', async message => {
                     case "add":
                         argRoom = removeNonNumericCharacters(argRoom);                
                         //removes the <@#> and returns a number string
-                        if(serverConfig.secretRoom.rooms.find(r => r.userId === argRoom)){
-                            message.channel.send(`Error: member <@${argRoom}> already has a secret room`);
-                            return;
-                        }
-
                         if (!message.guild.members.fetch(argRoom)){
                             message.channel.send("Error: invalid User ID");
                             return;
                         }
                         
                         if (!serverConfig.secretRoom.categoryId){
-                            message.channel.send("Error: no category configured !room category [category name]")
+                            message.channel.send("Error: no category configured !room category [category name]");
                             return;
                         }
+
+                        if(!serverConfig.secretRoom.name){
+                            message.channel.send("Error: no name configured !room name [room name]");
+                            return;
+                        }
+
+
+                        if(serverConfig.secretRoom.rooms.find(r => r.userId === argRoom)){
+                            message.channel.send(`Error: member <@${argRoom}> already has a secret room`);
+                            return;
+                        }
+
                         
                         let newChannel;
                         message.guild.channels.create(serverConfig.secretRoom.name, {"parent" : serverConfig.secretRoom.categoryId})
