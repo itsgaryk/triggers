@@ -166,6 +166,31 @@ client.on('message', async message => {
                         return;  
                 }
             case "room":
+                if(args[0] !== undefined && args[1] !== undefined)
+                {
+                    if(serverConfig.secretRoom.rooms.find(r => r.userId === message.author.id)){
+                        message.channel.send(`Error: You already have a secret room. Don't be greedy!`);
+                        return;
+                    }
+                    if (!serverConfig.secretRoom.categoryId){
+                        message.channel.send("Error: no category configured !room category [category name]")
+                        return;
+                    }
+                    let newChannel;
+                    message.guild.channels.create(serverConfig.secretRoom.name, {"parent" : serverConfig.secretRoom.categoryId})
+                    .then(channel => {
+                        newChannel = channel.id;
+                        message.guild.members.fetch(message.author.id)
+                        .then(member => channel.updateOverwrite(member,{
+                        VIEW_CHANNEL: true}))
+                            .then(() => {
+                                serverConfig.secretRoom.rooms.push({"roomId": newChannel, "userId": message.author.id});
+                                message.channel.send(`Secret Room <#${newChannel}> has successfully been created for <@${message.author.id}>`);
+                                updateConfig(serverConfig,guildId);
+                            })
+                    })
+                    return;
+                }
                 if(!hasValueFromArray(memberRoles, serverConfig.modRoles) && message.author.id != guildOwner){
                     message.channel.send("Error: you don't have permission to perform that command.")
                     return;
@@ -175,10 +200,11 @@ client.on('message', async message => {
                         return;
                 }
 
-                let argRoom = removeNonNumericCharacters(args[1]);                
+                let argRoom = args[1];                
                 
                 switch(args[0]){
                     case "add":
+                        argRoom = removeNonNumericCharacters(argRoom);                
                         //removes the <@#> and returns a number string
                         if(serverConfig.secretRoom.rooms.find(r => r.userId === argRoom)){
                             message.channel.send(`Error: member <@${argRoom}> already has a secret room`);
@@ -191,7 +217,7 @@ client.on('message', async message => {
                         }
                         
                         if (!serverConfig.secretRoom.categoryId){
-                            message.channel.send("Error: no category configured !room category [categoryId name]")
+                            message.channel.send("Error: no category configured !room category [category name]")
                             return;
                         }
                         
@@ -222,6 +248,7 @@ client.on('message', async message => {
                         return;
                         
                     case "remove":
+                        argRoom = removeNonNumericCharacters(argRoom);                
                         if(!serverConfig.secretRoom.rooms.find(r => r.userId === argRoom)){
                             channel.message.send("Error: member does not have a secret room")
                         }
