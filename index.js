@@ -385,15 +385,14 @@ client.on('message', async message => {
 
 //General functions
 
-//n = serverConfig, o = GuildID
-async function newConfig(n){
-    let serverConfig = {"guessNumber": newNumber(),"secretRoom": [],"modRoles": [], "triggers":[], "voice": ""};
-    fs.writeFileSync(`json/${n}.json`, JSON.stringify(serverConfig, null, 2));
+async function newConfig(guildId){
+    let serverConfig = {"guessNumber": newNumber(),"secretRoom":{"name":"","categoryID":"","rooms":[]},"modRoles": [], "triggers":[], "voice": ""};
+    fs.writeFileSync(`json/${guildId}.json`, JSON.stringify(serverConfig, null, 2));
 }
 
-async function updateConfig(n,o){
-        fs.writeFileSync(`json/${o}.json`, JSON.stringify(n, null, 2));
-        console.log(`Updated config file for server ${o}`);
+async function updateConfig(serverConfig,guildId){
+        fs.writeFileSync(`json/${guildId}.json`, JSON.stringify(serverConfig, null, 2));
+        console.log(`Updated config file for server ${guildId}`);
 }
 
 function isNumber(n){
@@ -419,16 +418,8 @@ let valueCondition = 0;
             memberRoles.forEach(r => {if(r.id === modRoles[i]) valueCondition++;});
         }
     }
-    if(valueCondition == 1) return true;
+    if(valueCondition > 0) return true;
     else return false;
-}
-
-//Room function
-async function newSecretChannel(channels, member, name, categoryId){
-    let newChannel;
-    
-    
-    return newChannel;
 }
 
 //Array functions
