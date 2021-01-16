@@ -1,14 +1,24 @@
+//OpusEncoder for voice
+const {OpusEncoder} = require('@discordjs/opus');
+// Specify 48kHz sampling rate and 2 channel size.
+const encoder = new OpusEncoder(48000, 2);
+
+// Encode and decode.
+//const encoded = encoder.encode(buffer);
+//const decoded = encoder.decode(encoded);
+
 const fs = require('fs');
 const Discord = require('discord.js');
 const {prefix, token} = require('./config.json');
+const { type } = require('os');
 const client = new Discord.Client();
 
 //loading command files
-client.commands = new Discord.Collection();
-const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
 /*
+client.commands = new Discord.Collection();
+
 for (const file of commandFiles) {
-    const command = require("./commands/${file}");
+    const commands =  require("./commands/${file}");
 }
 */
 
@@ -84,9 +94,15 @@ client.on('message', async message => {
             case "test":
                 if(message.author.id != guildOwner) return;
 
-                console.log(message.guild.members.fetch("82919694574551040"))
-                console.log(serverConfig.secretRoom.rooms.find(r => r.userId === "435"))
-                console.log(serverConfig.secretRoom.categoryId)
+                const hasMember = await isGuildMember(message.guild.members, "82919694574551")
+                console.log(hasMember)
+                if (hasMember) console.log("is a member")
+                else ("is not a member")
+                
+                const content = message.content;
+                console.log(removeNonNumericCharacters(content))
+                //console.log(Math.floor((Math.random()) * 50+1))
+
                 //if (message.guild.channels.cache.find(r => r.id == ("798573191936081961"))) console.log("found the channel");
                 //if (client.token.search("Nzkz")) console.log("Found the token!")
 
@@ -113,12 +129,20 @@ client.on('message', async message => {
                 //console.log(serverConfig.triggers.map(r => r.triggerWord))
                 return;
             case "help":
-                message.channel.send("Available Commands\n\n" + "!help - Lists all available commands\n" + 
-                "!mod [add/remove] [role] - Manage your mods (mod only)\n" + 
+                message.channel.send("Available Commands\n\n" +
+                "**Member Commands\n**" +
+                "!help - Lists all available commands\n" + 
                 "!hint - Gives you a hint for the number\n" + 
-                "!room [add/remove] [channel] - Manage your secret rooms (mod only)\n" +
-                "!trigger [add/remove] [word] [URL] - Manage your trigger words (remove is mod only)\n" +
-                "!triggers - displays all available triggers");
+                "!room - Creates a secret room for you\n" + 
+                "!trigger add [word] [image URL] - Adds a trigger word\n" +
+                "!triggers - Displays all available triggers\n\n"+
+                
+                "**Mod Commands**\n" +
+                "!mod [add/remove] [role] - Adds/removes mod roles\n" + 
+                "!room [add/remove] [member] - Adds/removes a secret room\n" +
+                "!room category [name] - Sets the category for secret rooms to be created in\n" +
+                "!room name [text] - Changes the default name of a secret room\n" +
+                "!trigger remove [word] - Removes a trigger word");
                 return;
             case "hint":
                 message.channel.send(hintNumber(serverConfig.guessNumber));
@@ -168,20 +192,13 @@ client.on('message', async message => {
             case "room":
                 if(args[0] == undefined && args[1] == undefined)
                 {
-                    if (!serverConfig.secretRoom.categoryId){
-                        message.channel.send("Error: no category configured !room category [category name]")
-                        return;
-                    }
-
-                    if(!serverConfig.secretRoom.name){
-                        message.channel.send("Error: no name configured !room name [room name]");
-                        return;
-                    }
+                    if(!hasRoomConfig(serverConfig.secretRoom, message.channel)) return;
 
                     if(serverConfig.secretRoom.rooms.find(r => r.userId === message.author.id)){
                         message.channel.send(`Error: You already have a secret room. Don't be greedy!`);
                         return;
                     }
+
                     let newChannel;
                     message.guild.channels.create(serverConfig.secretRoom.name, {"parent" : serverConfig.secretRoom.categoryId})
                     .then(channel => {
@@ -202,42 +219,27 @@ client.on('message', async message => {
                     return;
                 }
                 if(args[0] === undefined || args[1] === undefined){
-                        message.channel.send("Error: missing arguments !room [add¦remove/category¦name] [member/name] ");
+                        message.channel.send("Error: missing arguments. See !help");
                         return;
                 }
 
-                let argRoom = args[1];                
+                //removes the <@#> and returns a number string
+                const argRoom = removeNonNumericCharacters(args[1]);                
+                const isMember = await isGuildMember(message.guild.members, argRoom)
                 
                 switch(args[0]){
                     case "add":
-                        argRoom = removeNonNumericCharacters(argRoom);                
-                        //removes the <@#> and returns a number string
-                        if (!message.guild.members.fetch(argRoom)){
-                            message.channel.send("Error: invalid User ID");
-                            return;
-                        }
-                        
-                        if (!serverConfig.secretRoom.categoryId){
-                            message.channel.send("Error: no category configured !room category [category name]");
-                            return;
-                        }
+                        if (isMember == false)
+                        { message.channel.send("Error: invalid user"); return; }
 
-                        if(!serverConfig.secretRoom.name){
-                            message.channel.send("Error: no name configured !room name [room name]");
-                            return;
-                        }
+                        if(!hasRoomConfig(serverConfig.secretRoom, message.channel)) return;
 
+                        if(serverConfig.secretRoom.rooms.find(r => r.userId === message.author.id))
+                        { message.channel.send(`Error: member <@${argRoom}> already has a secret room`); return; }
 
-                        if(serverConfig.secretRoom.rooms.find(r => r.userId === argRoom)){
-                            message.channel.send(`Error: member <@${argRoom}> already has a secret room`);
-                            return;
-                        }
-
-                        
-                        let newChannel;
                         message.guild.channels.create(serverConfig.secretRoom.name, {"parent" : serverConfig.secretRoom.categoryId})
                         .then(channel => {
-                            newChannel = channel.id;
+                            let newChannel = channel.id;
                             message.guild.members.fetch(argRoom)
                             .then(member => channel.updateOverwrite(member,{
                             VIEW_CHANNEL: true}))
@@ -260,17 +262,19 @@ client.on('message', async message => {
                         }
                         return;
                     case "name":
-                        serverConfig.secretRoom.name = argRoom;
+                        serverConfig.secretRoom.name = args[2];
                         updateConfig(serverConfig, guildId)
                         message.channel.send("Secret Room name has successfully been updated to ", argRoom);
                         return;
                     case "remove":
-                        argRoom = removeNonNumericCharacters(argRoom);                
-                        if(!serverConfig.secretRoom.rooms.find(r => r.userId === argRoom)){
-                            channel.message.send("Error: member does not have a secret room")
-                        }
+                        
+                        if (isMember == false)
+                        { message.channel.send("Error: invalid user"); return; }
+                        
+                        if(serverConfig.secretRoom.rooms.find(r => r.userId === argRoom) ^ serverConfig.secretRoom.rooms.length < 1)
+                        message.channel.send("Error: member does not have a secret room")
                         else{
-                            i =0;
+                            let i;
                             serverConfig.secretRoom.rooms.forEach(r => {
                                 if(r.userId === argRoom && message.guild.channels.cache.get(r.roomId))
                                 {
@@ -281,11 +285,12 @@ client.on('message', async message => {
                                 }
                                 i++
                             })
+
                             updateConfig(serverConfig,guildId);
                         }
                         return;
                     default:
-                        message.channel.send("Error: invalid argument after room [add/remove] e.g. !room add #general")
+                        message.channel.send("Error: invalid argument after room. See !help")
                         return; 
                 }        
             case "rooms":
@@ -297,30 +302,23 @@ client.on('message', async message => {
                     message.channel.send("Secret Rooms\n\n", roomList);
                 }
                 return;
-            case "sound":
-                /*
-                if(args[0] === undefined || args[1] === undefined || args[2] === undefined){
-                    message.channel.send("Error: missing arguments e.g. !sound add  [categoryId]");
-                    return;
-                }
-                */
-                if (message.member.voice.channel) {
-                    const connection = await message.member.voice.channel.join();
-                }
-                
-                const dispatcher = connection.play('audio/airhorn.mp3');
+            case "sounds":
+                const fileList = fs.readdirSync("audio/")    
+                if(fileList.length == 0) message.channel.send("No sounds have been added to the server")
+                else {
+                    const getCommands = (fileList) => {
+                    let newList = [];
+                    for(i =0;i < fileList.length; i++){
+                        let newWord = fileList[i].split(".")
+                        newList[i] = newWord[0];
+                    }
+                    return newList
+                    }
 
-                dispatcher.on('start', () => {
-                    console.log('audio is now playing!');
-                });
-                
-                dispatcher.on('finish', () => {
-                    console.log('audio has finished playing!');
-                    return;
-                });
-                
-                dispatcher.on('error', console.error);
-
+                    let voiceList = sortArray(getCommands(fileList));
+                    message.channel.send("Available sounds\n```" + voiceList.join("  ") + "```");
+                    
+                }
                 return;
             case "trigger":
                 if(args[0] === undefined || args[1] === undefined){
@@ -398,11 +396,41 @@ client.on('message', async message => {
     //Triggers
     else if (!message.content.startsWith(prefix) && !isNumber(message.content)) {
         let args = message.content.toLowerCase().split(" ");
-        for(i = 0; i < args.length; i++) {
-            for (j = 0; j < serverConfig.triggers.length; j++) {
-                if (args[i] === serverConfig.triggers[j].triggerWord){
-                    message.channel.send({files: [serverConfig.triggers[j].triggerLink]});
-                    return;
+        //Voice Triggers
+        if (serverConfig.secretRoom.rooms.find(r => r.roomId == message.channel.id))
+        {    
+            const getCommands = (fileList) => {
+                let newList = [];
+                for(i =0;i < fileList.length; i++){
+                    let newWord = fileList[i].split(".")
+                    newList[i] = newWord[0];
+                }
+                return newList
+            }
+            const fileList = fs.readdirSync("audio/")
+            const voiceCommands = getCommands(fileList)
+
+            const connection = await message.member.voice.channel.join();
+            //if (message.member.voice.channel) {}
+            if(voiceCommands.length > 0)
+            for(i = 0; i < voiceCommands.length; i++) {
+                if (args[0] === voiceCommands[i]){
+                    const dispatcher = connection.play('audio/'+fileList[i]);
+                    dispatcher.on('start', () => {});
+                    
+                    dispatcher.on('finish', () => { return; });
+                    dispatcher.on('error', console.error);
+                }
+            }
+            return;
+        }
+        else{
+            for(i = 0; i < args.length; i++) {
+                for (j = 0; j < serverConfig.triggers.length; j++) {
+                    if (args[i] === serverConfig.triggers[j].triggerWord){
+                        message.channel.send({files: [serverConfig.triggers[j].triggerLink]});
+                        return;
+                    }
                 }
             }
         }
@@ -428,9 +456,8 @@ client.on('message', async message => {
 })
 
 //General functions
-
 async function newConfig(guildId){
-    let serverConfig = {"guessNumber": newNumber(),"secretRoom":{"name":null,"categoryID":null,"rooms":[]},"modRoles": [], "triggers":[], "voice": null};
+    let serverConfig = {"guessNumber": newNumber(),"secretRoom":{"name":"secret-room","categoryID":null,"rooms":[]},"modRoles": [], "triggers":[], "voice": null};
     fs.writeFileSync(`json/${guildId}.json`, JSON.stringify(serverConfig, null, 2));
 }
 
@@ -454,6 +481,24 @@ function removeNonNumericCharacters(n){
     else return n;
 }
 
+async function isGuildMember(guildMembers, memberId){
+    try{
+        // Try fetching the member. If it can't find him, will throw a rejection.
+        await guildMembers.fetch(memberId);
+        // We passed the fetching, so the ID was correct, and everything worked out.
+        return true;
+      }
+      catch(e){
+        console.log(e.message, e.code)
+        // Check what the error was, and the error-code 
+        //(see: https://discord.com/developers/docs/topics/opcodes-and-status-codes#json-json-error-codes)
+        //-- should be "10007: Unknown member"
+        if( e instanceof Discord.DiscordAPIError && e.code === 10007 ) return false;
+        if( e instanceof Discord.DiscordAPIError && e.code === 10013 ) return false;
+        // Was some unrelated error, rethrow.
+        throw(e);
+      }
+    }
 //Object functions
 function hasValueFromArray(memberRoles,modRoles){
 let valueCondition = 0;
@@ -475,6 +520,49 @@ function sortArray(n){
         return 0;
     })
 }
+
+//Room functions
+function hasRoomConfig(secretRoom, message){
+    if (!secretRoom.categoryId){
+        message.send("Error: no category configured. See !help")
+        return 0;
+    }
+
+    if(!secretRoom.name){
+        message.send("Error: no room name configured. See !help");
+        return 0;
+    }
+    
+    return 1;
+}
+
+//message.guild.channels, argRoom, serverConfig.secretRoom
+/*
+async function newRoom(channels, member, serverConfig){
+    if (!serverConfig.secretRoom.categoryId)
+            {message.channel.send("Error: no category configured. See !help"); return;}
+
+    if (!serverConfig.secretRoom.name)
+            {message.channel.send("Error: no room name configured. See !help"); return;}
+
+    if (serverConfig.secretRoom.rooms.forEach(r => {if(r.userId === argRoom) return true}))
+            {message.channel.send(`Error: member <@${argRoom}> already has a secret room`); return;}
+
+    try{
+        let newChannel;
+        await channels.create(secretRoom.name, {"parent" : secretRoom.categoryId})
+        .then(channel => {
+            newChannel = channel.id;
+            message.guild.members.fetch(member)
+            .then(member => channel.updateOverwrite(member,{
+            VIEW_CHANNEL: true}))
+    }
+    catch(e){}
+    throw(e)
+
+}
+*/
+
 
 //Trigger functions
 function validateURL(n, o){
