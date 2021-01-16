@@ -166,7 +166,7 @@ client.on('message', async message => {
                         return;  
                 }
             case "room":
-                if(args[0] !== undefined && args[1] !== undefined)
+                if(args[0] == undefined && args[1] == undefined)
                 {
                     if(serverConfig.secretRoom.rooms.find(r => r.userId === message.author.id)){
                         message.channel.send(`Error: You already have a secret room. Don't be greedy!`);
@@ -246,7 +246,11 @@ client.on('message', async message => {
                             updateConfig(serverConfig, guildId)
                         }
                         return;
-                        
+                    case "name":
+                        serverConfig.secretRoom.name = argRoom;
+                        updateConfig(serverConfig, guildId)
+                        message.channel.send("Secret Room name has successfully been updated to ", argRoom);
+                        return;
                     case "remove":
                         argRoom = removeNonNumericCharacters(argRoom);                
                         if(!serverConfig.secretRoom.rooms.find(r => r.userId === argRoom)){
@@ -413,7 +417,7 @@ client.on('message', async message => {
 //General functions
 
 async function newConfig(guildId){
-    let serverConfig = {"guessNumber": newNumber(),"secretRoom":{"name":"","categoryID":"","rooms":[]},"modRoles": [], "triggers":[], "voice": ""};
+    let serverConfig = {"guessNumber": newNumber(),"secretRoom":{"name":null,"categoryID":null,"rooms":[]},"modRoles": [], "triggers":[], "voice": null};
     fs.writeFileSync(`json/${guildId}.json`, JSON.stringify(serverConfig, null, 2));
 }
 
