@@ -1,11 +1,15 @@
+const functions = require('../functions.js');
+
 module.exports = {
 	name: 'test',
         description: 'Ping!',
         args: false,
 	execute(message, args, serverConfig,) {
-        message.channel.send("hello")
-        console.log("suck your mum")
-        message.channel.send(doSomething)
+        if(!functions.hasMod(message, serverConfig)) message.channel.send("hello")
+
+        if (serverConfig.secretRoom.rooms.find(r => r.userId === "82919694574551040"))
+        console.log("fuck you")
+
         //if(message.author.id != guildOwner) return;
         
         //console.log(await(await(message.guild.members.fetch(message.author.id)).nickname))
@@ -41,7 +45,3 @@ module.exports = {
         return;
 	},
 };
-
-function doSomething(){
-        return "x"
-}
