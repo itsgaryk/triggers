@@ -11,6 +11,9 @@ const numberGuess = require('./guess.js');
 //-Triggers
 const triggers = require('./triggers.js')
 
+//-Twitch
+const twitch = require('./twitch.js')
+
 //Command files
 client.commands = new Discord.Collection();
 const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
@@ -111,14 +114,14 @@ client.on('message', async message => {
         }
     }
 
-    //Number guessing
-    if (!isNaN(message.content) && serverConfig.secretRoom.rooms.find(r => r.roomId === message.channel.id)){
-    console.log("secret room")
-    numberGuess.checkNumber(message, serverConfig, message.content)
+    if (!message.content.startsWith(prefix)){
+        //Number guessing
+        if(!isNaN(message.content) && message.content != "")
+            numberGuess.checkNumber(message, serverConfig, message.content)
+        //Triggers
+        else
+            triggers.detectTrigger(message, serverConfig)
     }
-    //Triggers
-    if (!message.content.startsWith(prefix) && isNaN(message.content))
-        triggers.detectTrigger(message, serverConfig)
 })
 
 async function newConfig(guildId){

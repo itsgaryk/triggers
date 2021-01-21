@@ -37,6 +37,8 @@ function triggerVoice(message,triggerWord){
 	const voiceCommands = getCommands(fileList)
 	for(let i = 0; i < voiceCommands.length; i++)
 
+	if(!voiceCommands.find(r => r === triggerWord))	return;
+	
 	message.member.voice.channel.join().
 	then(r => {
 		const dispatcher = r.play(`audio/${triggerWord}.mp3`)
