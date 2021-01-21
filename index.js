@@ -46,37 +46,34 @@ client.on('voiceStateUpdate', (oldState, newState) => {
     //Ignores all other channels if client is dev bot
     if((newState.channelID !== "798573191936081961" ^ oldState.channelID === "798573191936081961") && client.user.id === "795940893709959178") return;
 
-    //Ignores radio channel if client is a bot
-    if((newState.channelID === "801084828388687882" ^ oldState.channelID === "801084828388687882") && client.user.id !== "801086277029986325") return;
-
     //New radio channel
+
     if((newState.channelID === "801084828388687882" ^ oldState.channelID === "801084828388687882")){
-        if (!newState.member.user.bot){
+        if (((newState.channelID && !newState.member.roles.cache.find(r => r.id == "793013387612520468") && !newState.member.user.bot))){
             console.log("adding radio role");
-            newState.member.roles.add("801089401249202176")
-            return;
+            newState.member.roles.add(["801097940881768500", serverConfig.voice])
         }
 
-        if (newState.channelID === null && !newState.member.user.bot) {
+    if (newState.channelID === null && !newState.member.user.bot) {
             console.log("removing radio role");
-            newState.member.roles.remove("801089401249202176");
-            return;
+            newState.member.roles.remove(["801097940881768500", serverConfig.voice]);
         }
-    }
-    //All other channels
+    }    
     else{
-        if (((newState.channelID && !newState.member.roles.cache.find(r => r.id == serverConfig.voice) && !newState.member.user.bot))){
-            console.log("adding role");
-            newState.member.roles.add(serverConfig.voice)
-            return;
-        }
-
-        if (newState.channelID == null && !newState.member.user.bot) {
-            console.log("removing role");
-            newState.member.roles.remove(serverConfig.voice);
-            return;
-        }
+    if (((newState.channelID && !newState.member.roles.cache.find(r => r.id == serverConfig.voice) && !newState.member.user.bot))){
+        console.log("adding role");
+        newState.member.roles.add(serverConfig.voice)
+        return;
     }
+
+    if (newState.channelID == null && !newState.member.user.bot) {
+        console.log("removing role");
+        newState.member.roles.remove(serverConfig.voice);
+        return;
+    }
+}
+
+
 });
 
 //Event - When a message has been sent
@@ -101,6 +98,9 @@ client.on('message', async message => {
                 case "help":
                     client.commands.get("help").execute(client.commands);
                     break;
+                case "quiz":
+                    client.commands.get("quiz").execute(message)
+                    break;
                 default:
                     client.commands.get(command).execute(message, args, serverConfig);
             }
@@ -112,9 +112,10 @@ client.on('message', async message => {
     }
 
     //Number guessing
-    if (!isNaN(message.content) && serverConfig.secretRoom.rooms.find(r => r.roomId = message.channel.id))
+    if (!isNaN(message.content) && serverConfig.secretRoom.rooms.find(r => r.roomId === message.channel.id)){
+    console.log("secret room")
     numberGuess.checkNumber(message, serverConfig, message.content)
-    
+    }
     //Triggers
     if (!message.content.startsWith(prefix) && isNaN(message.content))
         triggers.detectTrigger(message, serverConfig)
