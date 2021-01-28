@@ -17,7 +17,7 @@ function detectTrigger(message, serverConfig){
 	if (serverConfig.secretRoom.rooms.find(r => r.roomId == message.channel.id))
 		triggerVoice(message,args[0]);
 	else
-		triggerImage(message, serverConfig, args[0]);
+		triggerImage(message, serverConfig, args);
 }
 
 
@@ -48,11 +48,11 @@ function triggerVoice(message,triggerWord){
 	})
 }
 
-function triggerImage(message, serverConfig, triggerWord){
+function triggerImage(message, serverConfig, args){
 	serverConfig.triggers.find(r => {
-		if (r.triggerWord === triggerWord){
-			const triggerLink = r.triggerLink;
-			message.channel.send({files: [triggerLink]});
+		for(let i = 0; i < args.length; i++){
+			if (r.triggerWord === args[i])
+				message.channel.send({files: [r.triggerLink]});
 		}
 	});
 }
