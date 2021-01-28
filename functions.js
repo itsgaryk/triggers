@@ -4,6 +4,7 @@ module.exports = {
     isNumber,
     hasSpecialCharaters,
     hasAlphabeticCharactersOnly,
+    removeFileExtension,
     removeNonNumericCharacters,
     isGuildMember,
     validateLink,
@@ -99,7 +100,16 @@ function sortArray(n){
 //Checks if the message channel is a secret room.
 //messageChannel = message.channel.id
 //secretRoom = serverConfig.secretRoom
-function checkRoom(messageChannel, secretRoom){
-    if (secretRoom.rooms.find(r => r.roomId === messageChannel)){ return true;}
+function checkRoom(serverConfig, messageChannel){
+    if (serverConfig.secretRoom.rooms.find(r => r.roomId === messageChannel)){ return true;}
     else return false;
+}
+
+function removeFileExtension(fileList){
+    let newList = []
+    for(let i =0;i < fileList.length; i++){
+        let newWord = fileList[i].split(".");
+        newList.push(newWord[0]);
+    }
+    return newList
 }
