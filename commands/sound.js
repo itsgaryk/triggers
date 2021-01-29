@@ -67,7 +67,7 @@ async function removeSound(message, triggerWord){
     const soundList = functions.removeFileExtension(fileList);
     for (let i = 0; i < soundList.length; i++){
         if (soundList[i] === triggerWord){
-            fs.rmSync(`./audio/${fileList[i]}`)
+            fs.unlinkSync(`./audio/${fileList[i]}`)
             message.channel.send(`Sound clip **${triggerWord}** successfully removed`);
             return;
         }
