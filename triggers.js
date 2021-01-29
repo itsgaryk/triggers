@@ -35,24 +35,30 @@ function triggerVoice(message,triggerWord){
 
 	const fileList = fs.readdirSync("audio/")
 	const voiceCommands = getCommands(fileList)
-	for(let i = 0; i < voiceCommands.length; i++)
-
-	if(!voiceCommands.find(r => r === triggerWord))	return;
-	
-	message.member.voice.channel.join().
-	then(r => {
-		const dispatcher = r.play(`audio/${triggerWord}.mp3`)
-		dispatcher.on('start', () => {});
-		dispatcher.on('finish', () => { return; });
-		dispatcher.on('error', console.error);
-	})
+	for(let i = 0; i < voiceCommands.length; i++){
+		if (voiceCommands.find(r => r === triggerWord)){
+			message.member.voice.channel.join().then(musicPlayer => {
+				const dispatcher = musicPlayer.play(`audio/${fileList[i]}`)
+				dispatcher.on('start', () => {});
+				dispatcher.on('finish', () => { return; });
+				dispatcher.on('error', console.error);
+			})
+		}
+	}
 }
 
 function triggerImage(message, serverConfig, args){
-	serverConfig.triggers.find(r => {
-		for(let i = 0; i < args.length; i++){
-			if (r.triggerWord === args[i])
-				message.channel.send({files: [r.triggerLink]});
+	const triggerCounter = [];
+	for(let i = 0; i < args.length; i++){
+		if (triggerCounter.length === 1) return;
+		else{
+			serverConfig.triggers.find(r => {
+				if(r.triggerWord === args[i] && triggerCounter.length < 1){
+					message.channel.send({files: [r.triggerLink]});
+					triggerCounter.push("complete");
+					console.log(triggerCounter);
+				}
+			});
 		}
-	});
+	};
 }

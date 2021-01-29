@@ -1,14 +1,14 @@
 const fs = require('fs');
 module.exports = {
     updateConfig,
-    isNumber,
     hasSpecialCharaters,
     hasAlphabeticCharactersOnly,
     removeFileExtension,
     removeNonNumericCharacters,
     isGuildMember,
     validateLink,
-    validateImage,
+    validateFileType,
+    downloadFile,
     hasMod,
     sortArray,
     checkRoom
@@ -25,10 +25,6 @@ function hasMod(message,serverConfig){
     if (memberRoles.find(r => serverConfig.modRoles.find(m => r.id == m)) 
     || message.author.id == message.guild.owner.id) return true;
     else return false;
-}
-
-function isNumber(n){
-    return !isNaN(parseInt(n));
 }
 
 function hasSpecialCharaters(n){
@@ -83,10 +79,21 @@ function validateLink(n){
 
 }
 
-function validateImage(triggerLink){
-    return (triggerLink.match(/\.(jpeg|jpg|gif|png)$/) != null);
+function validateFileType(message, res, fileType){
+    const getContentType = (res) => {
+        newContentType = res.headers.get('content-type').split("/")
+        return newContentType[0];
+    }    
+    const contentType = getContentType(res);
+    if (contentType != fileType)
+    { message.channel.send("Error: invalid file type"); return false;}
+    else return true;
 }
 
+function downloadFile(link){
+    file = new File();
+    return file;
+}
 //Sorts array into alphabetical order
 function sortArray(n){
     if(n == 0) return;

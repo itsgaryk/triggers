@@ -83,7 +83,7 @@ client.on('voiceStateUpdate', (oldState, newState) => {
 client.on('message', async message => {
     //Loads server config file. Creates new if it doesn't already exist.
     const serverConfig = await getConfig(message.guild.id);
-
+    
     //Ignores the message if sent from a bot
     if (message.author.bot) return;
 
