@@ -1,12 +1,12 @@
 const fs = require('fs');
 module.exports = {
-    updateConfig,
     hasSpecialCharaters,
     hasAlphabeticCharactersOnly,
     removeFileExtension,
     removeNonNumericCharacters,
     isGuildMember,
     validateLink,
+    getFileType,
     validateFileType,
     downloadFile,
     hasMod,
@@ -14,15 +14,10 @@ module.exports = {
     checkRoom
 };
 
-async function updateConfig(serverConfig,guildId){
-        fs.writeFileSync(`json/${guildId}.json`, JSON.stringify(serverConfig, null, 2));
-        console.log(`Updated config file for server ${guildId}`);
-}
-
-function hasMod(message,serverConfig){
+function hasMod(message,config){
     const memberRoles = message.member.roles.cache;
-    if (serverConfig.modRoles.length < 1 && message.member.roles.cache.length < 0) return false;
-    if (memberRoles.find(r => serverConfig.modRoles.find(m => r.id == m)) 
+    if (config.modRole < 1) return false;
+    if (memberRoles.find(r => r.id === config.modRole) 
     || message.author.id == message.guild.owner.id) return true;
     else return false;
 }
@@ -79,15 +74,21 @@ function validateLink(n){
 
 }
 
-function validateFileType(message, res, fileType){
+function getFileType(res){
+        const newContentType = res.headers.get('content-type').split("/")
+        return newContentType[0];
+}
+
+function validateFileType(res, fileType){
     const getContentType = (res) => {
         newContentType = res.headers.get('content-type').split("/")
         return newContentType[0];
     }    
     const contentType = getContentType(res);
-    if (contentType != fileType)
-    { message.channel.send("Error: invalid file type"); return false;}
-    else return true;
+    if (contentType === fileType)
+        return true;
+    else 
+        return false;
 }
 
 function downloadFile(link){
@@ -104,19 +105,39 @@ function sortArray(n){
     })
 }
 
-//Checks if the message channel is a secret room.
-//messageChannel = message.channel.id
-//secretRoom = serverConfig.secretRoom
-function checkRoom(serverConfig, messageChannel){
-    if (serverConfig.secretRoom.rooms.find(r => r.roomId === messageChannel)){ return true;}
-    else return false;
+//Checks if the message channel is a secret room and the message is from the room owner
+async function checkRoom(message, config){
+    const roomId = [];
+    const category = message.guild.channels.cache.get(config.roomCategory)
+    if (category.children.size > 0) {
+        category.children.forEach(channel => {
+            if (channel.name === config.roomName)
+            channel.permissionOverwrites.forEach(m => {
+                    //checks if ID is the member's ID
+                    if (m.id === message.author.id)
+                        roomId.push(channel.id);
+            })
+        })
+    }
+    if (hasMod(message, config)) return 1;
+    else return roomId[0];
 }
 
 function removeFileExtension(fileList){
-    let newList = []
-    for(let i =0;i < fileList.length; i++){
-        let newWord = fileList[i].split(".");
-        newList.push(newWord[0]);
+    const getFileName = arg => {
+        if (arg === undefined) return;
+        const regex = /[-!$%^&*()_+|~=`{}\[\]:";'<>?,.\/]/;
+        const splitFile = arg.split(regex);
+        return splitFile[splitFile.length-2]
     }
-    return newList
+    
+    if(Array.isArray(fileList)){
+        const newList = []
+        for(let i =0;i < fileList.length; i++){
+            newList.push(getFileName(fileList[i]));
+        }
+        return newList;
+    }
+    else
+        return getFileName(fileList);
 }

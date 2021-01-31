@@ -1,15 +1,26 @@
+const { isGuildMember } = require("../functions");
+
 module.exports = {
 	name: 'rooms',
     description: 'Ping!',
     args: false,
-	execute(message, args, serverConfig) {
-        if(serverConfig.secretRoom.length == 0) message.channel.send("No secret rooms have been added");
+	execute(message, config, args) {
+        const roomOwners = [];
+        const category = message.guild.channels.cache.get(config.roomCategory)
+        if (category.children.size < 1)
+            message.channel.send("No secret rooms have been added");
         else{
-            //message.channel.send("All channels as secret rooms\n```", getArray(serverConfig.secretRoom) , "```");
-            const roomList = []
-            serverConfig.secretRoom.rooms.forEach(r => roomList.push(`<#${r.roomId}>\t-\t<@${r.userId}>\n`))
-            message.channel.send("Secret Rooms\n\n", roomList);
+            category.children.forEach(channel => {
+                if (channel.name === config.roomName)
+                channel.permissionOverwrites.forEach(m => {
+                        //checks if ID is the member's ID
+                        if (message.guild.members.cache.get(m.id) !== undefined){
+                            const member = message.guild.members.cache.get(m.id)
+                            roomOwners.push(member.displayName);
+                        }
+                })
+            })
+            message.channel.send("**Members with a Secret Room**\n" + "```" + roomOwners.join("\t") + "```");
         }
-        return;
-	},
+    },
 };

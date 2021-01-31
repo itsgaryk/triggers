@@ -36,7 +36,7 @@ function triggerVoice(message,triggerWord){
 	const fileList = fs.readdirSync("audio/")
 	const voiceCommands = getCommands(fileList)
 	for(let i = 0; i < voiceCommands.length; i++){
-		if (voiceCommands.find(r => r === triggerWord)){
+		if (voiceCommands[i] === triggerWord){
 			message.member.voice.channel.join().then(musicPlayer => {
 				const dispatcher = musicPlayer.play(`audio/${fileList[i]}`)
 				dispatcher.on('start', () => {});
@@ -50,15 +50,12 @@ function triggerVoice(message,triggerWord){
 function triggerImage(message, serverConfig, args){
 	const triggerCounter = [];
 	for(let i = 0; i < args.length; i++){
-		if (triggerCounter.length === 1) return;
-		else{
-			serverConfig.triggers.find(r => {
-				if(r.triggerWord === args[i] && triggerCounter.length < 1){
-					message.channel.send({files: [r.triggerLink]});
-					triggerCounter.push("complete");
-					console.log(triggerCounter);
-				}
-			});
-		}
+		if (triggerCounter === 1) return;
+		serverConfig.triggers.find(r => {
+			if(r.triggerWord === args[i] && triggerCounter.length < 1){
+				message.channel.send({files: [r.triggerLink]});
+				triggerCounter.push("complete");
+			}
+		});
 	};
 }

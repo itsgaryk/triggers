@@ -1,12 +1,10 @@
 const fs = require('fs');
 const Discord = require('discord.js');
 const client = new Discord.Client();
-const {prefix, token} = require('./config.json');
+const config = require('./config.json');
 //const { type } = require('os');
 
 //Custom modules
-//-Number guessing Game
-const numberGuess = require('./guess.js');
 
 //-Triggers
 const triggers = require('./triggers.js')
@@ -22,16 +20,11 @@ for (const file of commandFiles) {
     client.commands.set(command.name, command);
 }
 
-client.login(token);
+client.login(config.token);
 client.once('ready', () => {
     console.log('Locked and loaded!')    
 
 });
-
-//Creates a new JSON file when the guild adds the bot
-client.on('guildCreate', guild => {
-    newConfig(guild.id)
-})
 
 //Event - On Promise ready. Sets the statusu of the bot
 client.on('ready', () => {
@@ -41,7 +34,7 @@ client.on('ready', () => {
 
 //Event - Status change to voice channels
 client.on('voiceStateUpdate', (oldState, newState) => {
-    const serverConfig = JSON.parse(fs.readFileSync(`json/${newState.guild.id}.json`));
+    //const config = JSON.parse(fs.readFileSync(`json/${newState.guild.id}.json`));
 
     //Ignores dev channel if client is live bot
     if((newState.channelID === "798573191936081961" ^ oldState.channelID === "798573191936081961") && client.user.id === "793011221581660190") return;
@@ -50,28 +43,27 @@ client.on('voiceStateUpdate', (oldState, newState) => {
     if((newState.channelID !== "798573191936081961" ^ oldState.channelID === "798573191936081961") && client.user.id === "795940893709959178") return;
 
     //New radio channel
-
     if((newState.channelID === "801084828388687882" ^ oldState.channelID === "801084828388687882")){
         if (((newState.channelID && !newState.member.roles.cache.find(r => r.id == "793013387612520468") && !newState.member.user.bot))){
             console.log("adding radio role");
-            newState.member.roles.add(["801097940881768500", serverConfig.voice])
+            newState.member.roles.add([config.radioRole, config.voiceRole])
         }
 
     if (newState.channelID === null && !newState.member.user.bot) {
             console.log("removing radio role");
-            newState.member.roles.remove(["801097940881768500", serverConfig.voice]);
+            newState.member.roles.remove([config.radioRole, config.voiceRole]);
         }
     }    
     else{
-    if (((newState.channelID && !newState.member.roles.cache.find(r => r.id == serverConfig.voice) && !newState.member.user.bot))){
+    if (((newState.channelID && !newState.member.roles.cache.find(r => r.id == config.voiceRole) && !newState.member.user.bot))){
         console.log("adding role");
-        newState.member.roles.add(serverConfig.voice)
+        newState.member.roles.add(config.voiceRole)
         return;
     }
 
     if (newState.channelID == null && !newState.member.user.bot) {
         console.log("removing role");
-        newState.member.roles.remove(serverConfig.voice);
+        newState.member.roles.remove(config.voiceRole);
         return;
     }
 }
@@ -81,31 +73,28 @@ client.on('voiceStateUpdate', (oldState, newState) => {
 
 //Event - When a message has been sent
 client.on('message', async message => {
-    //Loads server config file. Creates new if it doesn't already exist.
-    const serverConfig = await getConfig(message.guild.id);
-    
     //Ignores the message if sent from a bot
     if (message.author.bot) return;
-
     //Commands
-    if(message.content.startsWith(prefix)) {  
-        const args = message.content.slice(prefix.length).trim().split(/ +/);
+    if(message.content.startsWith(config.prefix)) {  
+        const args = message.content.slice(config.prefix.length).trim().split(/ +/);
         //Removes the first element of args and puts it in command
         const command = args.shift();
         try {
             switch(command){
-                case "brb":
-                    client.users.fetch(message.author.id)
-                    .then(r => client.commands.get("brb").execute(message, r))
-                    break;
+                case "sound":
+                    client.commands.get("trigger").execute(message, config, args);
+                case "sounds":
+                    client.commands.get("triggers").execute(message, config, args, "audio");
+                case "triggers":
+                    client.commands.get(command).execute(message, config, args, "image");                
                 case "help":
-                    client.commands.get("help").execute(client.commands);
+                    client.commands.get(command).execute(client.commands);
                     break;
                 case "quiz":
-                    client.commands.get("quiz").execute(message)
                     break;
                 default:
-                    client.commands.get(command).execute(message, args, serverConfig);
+                    client.commands.get(command).execute(message, config, args);
             }
             return;
         }
@@ -113,28 +102,6 @@ client.on('message', async message => {
             console.error(error)
         }
     }
-
-    if (!message.content.startsWith(prefix)){
-        //Number guessing
-        if(!isNaN(message.content) && message.content != "")
-            numberGuess.checkNumber(message, serverConfig, message.content)
-        //Triggers
-        else
-            triggers.detectTrigger(message, serverConfig)
-    }
+    else;
+        //triggers.detectTrigger(message, config)
 })
-
-async function newConfig(guildId){
-    const serverConfig = {"guessNumber": (Math.floor(Math.random()*100)+1).toString(),"secretRoom":{"name":"secret-room","categoryID":undefined,"rooms":[]},"modRoles": [], "triggers":[], "voice": undefined};
-    fs.writeFileSync(`json/${guildId}.json`, JSON.stringify(serverConfig, null, 2));
-    console.log("new config created")
-}
-
-async function getConfig(guildId){
-    try { return JSON.parse(fs.readFileSync(`json/${guildId}.json`)); }
-    catch(err){
-        console.log(`config file for server ${guildId} does not exist. Creating a new one`)
-        newConfig(guildId);
-        return;
-    }
-}

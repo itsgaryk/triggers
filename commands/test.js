@@ -1,15 +1,29 @@
 const functions = require('../functions.js');
+const fetch = require('node-fetch')
 
 module.exports = {
 	name: 'test',
         description: 'Ping!',
         args: false,
-	execute(message, args, serverConfig,) {
-        if(!functions.hasMod(message, serverConfig)) message.channel.send("hello")
+	execute(message, config, args,) {
 
-        if (serverConfig.secretRoom.rooms.find(r => r.userId === "82919694574551040"))
-        console.log("fuck you")
+        fetch('https://cdn.discordapp.com/attachments/775016095596937241/798278051330392094/YfTpN6L.jpg')
+                .then(res => {
+                        console.log(res.ok)
+                        console.log(res.headers.get('content-type'))
+                        console.log(res.headers.get('content-length'))
+                })
 
+        const category = message.guild.channels.cache.get(config.roomCategory)
+        if (category.children.size > 0) console.log("Hello");
+        category.children.forEach(r => {
+                if (r.name === config.roomName)
+                r.permissionOverwrites.forEach(m => {
+                        //checks if ID is a user ID
+                        if (message.guild.members.cache.get(m.id) !== undefined)
+                                console.log(message.guild.members.cache.get(member.id).nickname);
+                })
+        })
         //if(message.author.id != guildOwner) return;
         
         //console.log(await(await(message.guild.members.fetch(message.author.id)).nickname))
