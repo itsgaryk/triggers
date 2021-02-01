@@ -1,4 +1,9 @@
 {
     "prefix": "!",
-    "token": "your Discord bot token"
+    "token": "BOT TOKEN",
+    "roomName": "CHANNEL NAME",
+    "roomCategory": "CATEGORY ID",
+    "modRole": "ROLE ID",
+    "voiceRole": "ROLE ID",
+    "radioRole": "ROLE ID"
 }
