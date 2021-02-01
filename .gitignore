@@ -1,10 +1,11 @@
 node_modules/
 config.json
-json/775016095596937238.json
-images/
-json/
 audio/
 ffmpeg.exe
+image/
+.eslintrc.json
+config.json
+config.json
 commands/not working/help.js
 commands/not working/hint.js
 commands/not working/mod.js
