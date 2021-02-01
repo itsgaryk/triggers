@@ -13,7 +13,6 @@
     "discord.js": "^12.5.1",
     "node-fetch": "^2.6.1",
     "node-pre-gyp": "^0.17.0",
-    "sequelize": "^6.4.0",
     "twitch": "^4.4.2"
   }
 }

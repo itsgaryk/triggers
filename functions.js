@@ -1,5 +1,6 @@
 const fs = require('fs');
 module.exports = {
+    hasMod,
     hasSpecialCharaters,
     hasAlphabeticCharactersOnly,
     removeFileExtension,
@@ -7,9 +8,7 @@ module.exports = {
     isGuildMember,
     validateLink,
     getFileType,
-    validateFileType,
     downloadFile,
-    hasMod,
     sortArray,
     checkRoom
 };
@@ -75,20 +74,14 @@ function validateLink(n){
 }
 
 function getFileType(res){
+    try{
         const newContentType = res.headers.get('content-type').split("/")
         return newContentType[0];
-}
-
-function validateFileType(res, fileType){
-    const getContentType = (res) => {
-        newContentType = res.headers.get('content-type').split("/")
-        return newContentType[0];
-    }    
-    const contentType = getContentType(res);
-    if (contentType === fileType)
-        return true;
-    else 
-        return false;
+    }
+    catch (e){
+            console.log("Error: unknown file type")
+            return "unknown";
+    }
 }
 
 function downloadFile(link){
@@ -105,22 +98,35 @@ function sortArray(n){
     })
 }
 
-//Checks if the message channel is a secret room and the message is from the room owner
+//Returns a value if the message channel is a secret room and the message author is the room owner
 async function checkRoom(message, config){
     const roomId = [];
     const category = message.guild.channels.cache.get(config.roomCategory)
+    
+    //Marcios sound commands room and voice-chat
+    if (message.channel.id === "800091815230570516")
+        return 1;
+
+    //checks if the channel has the voice chat role
+    message.channel.permissionOverwrites.forEach( m => {
+        if (m.id === config.voiceRole)
+            roomId.push(m.id);
+    })
+
+    //checks if the message was posted in the member's room by the owner
     if (category.children.size > 0) {
         category.children.forEach(channel => {
             if (channel.name === config.roomName)
-            channel.permissionOverwrites.forEach(m => {
+                channel.permissionOverwrites.forEach(m => {
                     //checks if ID is the member's ID
                     if (m.id === message.author.id)
                         roomId.push(channel.id);
             })
         })
     }
-    if (hasMod(message, config)) return 1;
-    else return roomId[0];
+    if(roomId.length > 0) return roomId[0];
+    else return undefined;
+    
 }
 
 function removeFileExtension(fileList){

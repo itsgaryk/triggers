@@ -1,7 +1,6 @@
 const functions = require("../functions.js")
 const fs = require('fs');
 const fetch = require('node-fetch');
-const trigger = require("./trigger.js");
 
 module.exports = {
 	name: 'trigger',
@@ -13,7 +12,7 @@ module.exports = {
             if(functions.hasMod(message, config))
                 removeTrigger(message, args[1].toLowerCase());
             else
-                message.channel.send("Error: unable to use **remove** as a sound");
+                message.channel.send("Error: unable to use **remove** as a trigger word");
         }
         else
             addTrigger(message, args);
@@ -22,57 +21,84 @@ module.exports = {
 
 async function addTrigger(message, args){   
 
-    const getTriggerUrl = (attachment, args) => {
-        if(attachment !== undefined)
-            return attachment.url;
+    const getTrigger = (message, args) => {
         
-        if(args !== [] && args[0] !== undefined)
-            return args[0];
-    }
+        const attachment = message.attachments.first()
+        const triggerInfo = {attachmentUrl:"", attachmentExtension:"", triggerWord:""}
 
-    const getTriggerWord = (triggerAttachment, args) => {
-        if(args === [])
-            return functions.removeFileExtension(attachmentUrl).toLowerCase();
+        //!trigger
+        if(message.attachments.size !== 0){
+                triggerInfo.attachmentUrl = attachment.url;
+                triggerInfo.attachmentExtension = attachment.url.split(".").pop();
 
-        else{
-            if(triggerAttachment !== undefined && args[0] !== undefined)
-                return args[0].toLowerCase();
+                //!trigger
+                if(message.attachments.size !== 0 && args[0] === undefined)
+                    triggerInfo.triggerWord = functions.removeFileExtension(attachment.url).toLowerCase();
 
-            if(triggerAttachment === undefined && args[1] === undefined)
-                return functions.removeFileExtension(args[0]).toLowerCase();
-
-            if(triggerAttachment === undefined && args[1] !== undefined)
-                return args[1].toLowerCase();
+                //!trigger [word]
+                else
+                    triggerInfo.triggerWord = args[0].toLowerCase();
         }
+        else{
+        //!trigger [link]
+            if(args[1] === undefined){
+                triggerInfo.attachmentUrl = args[0];
+                triggerInfo.triggerWord = functions.removeFileExtension(args[0]).toLowerCase();
+                triggerInfo.attachmentExtension = args[0].split(".").pop();
+            }
+        //!trigger [word] [link]
+            if(args[1] !== undefined){
+                triggerInfo.attachmentUrl = args[1];
+                triggerInfo.triggerWord = args[0].toLowerCase();
+                triggerInfo.attachmentExtension = args[1].split(".").pop();
+            }                
+        }
+
+        return triggerInfo;
     }
+
+    //Checks if there are no attachments and no arguments
+    if(message.attachments.size === 0 && args[0] === undefined)
+    { message.channel.send("Error: invalid arguments. See !help"); return; }
+
+    //Checks if there are no attachments, only 1 argument and the 1 argument has an invalid link
+    if(message.attachments.size === 0 && args[1] === undefined && !functions.validateLink(args[0]))
+            { message.channel.send("Error: invalid arguments. See !help"); return; }
 
     //Gets the URL and extension)
-    const attachment = message.attachments.first()
-    const attachmentUrl = await getTriggerUrl(attachment, args)
-    const attachmentExtension = attachmentUrl.split(".").pop()
+    //const attachment = message.attachments.first()
+    const {attachmentUrl , attachmentExtension, triggerWord} = getTrigger(message, args)
 
     if(!functions.validateLink(attachmentUrl)) 
-    { message.channel.send("Error: no valid URL detected"); return; }
+    { message.channel.send("Error: not valid URL"); return; }
 
-    if(message.attachments !== undefined && args[0] !== undefined) 
-        if(functions.validateLink(args[0])) { message.channel.send("Error: cannot submit both a file attachment and URL in message"); return; }
-    
     //Creates the trigger word from attachment URL or argument
-    const triggerWord = await getTriggerWord(attachment.url, args)
+    //const triggerWord = await getTriggerWord(attachment.url, args)
 
     if(!functions.hasAlphabeticCharactersOnly(triggerWord))
         { message.channel.send("Error: word cannot contain special characters or numbers"); return; }
-    
-    //Checks if the trigger word is already used as a filename
-    const fileList = fs.readdirSync(fileType+"/")
-    const commandList = functions.removeFileExtension(fileList);
-    if(commandList.find(r => r === triggerWord))
-    { message.channel.send(`Error: audio trigger **${triggerWord}** already exists`);; return; }
 
     fetch(attachmentUrl)
     .then(res => {
-        const fileType = getFileType(res);
+
+        //checks if the URL is valid
+        try{
+            res.body;
+        }
+        catch (e){
+            message.channel.send("Error: invalid URL")
+            return;
+        }
+        const fileType = functions.getFileType(res);
+
+        //Checks if the trigger word is already used as a filename
         if(fileType === "image" || fileType === "audio"){
+
+            const fileList = fs.readdirSync(fileType+"/")
+            const commandList = functions.removeFileExtension(fileList);
+            if(commandList.find(r => r === triggerWord))
+            { message.channel.send(`Error: ${fileType} trigger **${triggerWord}** already exists`); return; }
+
             if (Number(res.headers.get('content-length')) > 1024 * 1024 && fileType === "audio") 
             { message.channel.send(`Error: ${fileType} file exceeds more than 1MB`); return;}
             
@@ -84,11 +110,11 @@ async function addTrigger(message, args){
             message.channel.send(`${fileType} trigger **${triggerWord}** successfully added`);
         }
         else
-            return message.channel.send("Error: invalid file type")
+            message.channel.send("Error: invalid file type or invalid URL");
     })
 }
 
-async function removeTrigger(message, serverConfig, triggerWord){
+async function removeTrigger(message, triggerWord){
     const fileList = fs.readdirSync("audio/")
     if(fileList.length === 0) { message.channel.send("Error: no sound clips have been added to the server"); return; }
 

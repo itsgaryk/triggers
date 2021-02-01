@@ -36,8 +36,8 @@ async function createRoom(message, config){
                     message.channel.send(`Secret Room ${newChannel} has successfully been created`);
                 });
             }
-        else
-            message.channel.send(`Error: You already have a secret room. Don't be greedy!`);            
+            else
+                message.channel.send(`Error: You already have a secret room. Don't be greedy!`);            
         })
 }
 

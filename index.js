@@ -2,7 +2,6 @@ const fs = require('fs');
 const Discord = require('discord.js');
 const client = new Discord.Client();
 const config = require('./config.json');
-//const { type } = require('os');
 
 //Custom modules
 
@@ -49,32 +48,30 @@ client.on('voiceStateUpdate', (oldState, newState) => {
             newState.member.roles.add([config.radioRole, config.voiceRole])
         }
 
-    if (newState.channelID === null && !newState.member.user.bot) {
-            console.log("removing radio role");
-            newState.member.roles.remove([config.radioRole, config.voiceRole]);
-        }
+        if (newState.channelID === null && !newState.member.user.bot) {
+                console.log("removing radio role");
+                newState.member.roles.remove([config.radioRole, config.voiceRole]);
+            }
     }    
     else{
-    if (((newState.channelID && !newState.member.roles.cache.find(r => r.id == config.voiceRole) && !newState.member.user.bot))){
-        console.log("adding role");
-        newState.member.roles.add(config.voiceRole)
-        return;
+        if (((newState.channelID && !newState.member.roles.cache.find(r => r.id == config.voiceRole) && !newState.member.user.bot))){
+            console.log("adding role");
+            newState.member.roles.add(config.voiceRole)
+            return;
+        }
+
+        if (newState.channelID == null && !newState.member.user.bot) {
+            console.log("removing role");
+            newState.member.roles.remove(config.voiceRole);
+            return;
+        }
     }
-
-    if (newState.channelID == null && !newState.member.user.bot) {
-        console.log("removing role");
-        newState.member.roles.remove(config.voiceRole);
-        return;
-    }
-}
-
-
 });
 
 //Event - When a message has been sent
 client.on('message', async message => {
     //Ignores the message if sent from a bot
-    if (message.author.bot) return;
+    if(message.author.bot) return;
     //Commands
     if(message.content.startsWith(config.prefix)) {  
         const args = message.content.slice(config.prefix.length).trim().split(/ +/);
@@ -84,14 +81,9 @@ client.on('message', async message => {
             switch(command){
                 case "sound":
                     client.commands.get("trigger").execute(message, config, args);
-                case "sounds":
-                    client.commands.get("triggers").execute(message, config, args, "audio");
-                case "triggers":
-                    client.commands.get(command).execute(message, config, args, "image");                
-                case "help":
-                    client.commands.get(command).execute(client.commands);
                     break;
-                case "quiz":
+                case "sounds":
+                    client.commands.get("triggers").execute(message, config, args);             
                     break;
                 default:
                     client.commands.get(command).execute(message, config, args);
@@ -102,6 +94,6 @@ client.on('message', async message => {
             console.error(error)
         }
     }
-    else;
-        //triggers.detectTrigger(message, config)
+    else
+        triggers.execute(message, config);
 })
