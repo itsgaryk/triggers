@@ -10,11 +10,9 @@ module.exports = {
         
         const getFileType = (message) => {
             const arguments = message.content.slice(config.prefix.length).trim().split(/ +/);
-            //Removes the first element of args and puts it in command
-            const command = arguments.shift();
-            if (command === "triggers")
+            if (arguments[0] === "triggers")
                 return "image";
-            if (command === "sounds")
+            if (arguments[0] === "sounds")
                 return "audio"
         }
 

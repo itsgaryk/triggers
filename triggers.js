@@ -11,60 +11,62 @@ const encoder = new OpusEncoder(48000, 2);
 //const encoded = encoder.encode(buffer);
 //const decoded = encoder.decode(encoded);
 
-
-
 module.exports = {
-	execute(message, config) { 
-		
-		function trigger(message, fileType){
-			const fileList = fs.readdirSync(`${fileType}/`);
-			const triggerIndex = findTrigger(message, fileList)
-			
-			//Do nothing if it isn't a trigger word
-			if(triggerIndex === undefined) return;
-	
-			switch(fileType){
-				case "audio":
-					message.member.voice.channel.join().then(musicPlayer => {
-						const dispatcher = musicPlayer.play(`${fileType}/${fileList[triggerIndex]}`)
-						dispatcher.on('start', () => {});
-						dispatcher.on('finish', () => { return; });
-						dispatcher.on('error', console.error);
-					});
-					break;
-				case "image":
-					message.channel.send({files: [fs.readFileSync(`${fileType}/${fileList[triggerIndex]}`)]});
-					break;
-				default:
-					message.channel.send("Error: invalid file type");
-			}
+	execute(message, config, args) { 
+
+		const checkRoom = async (message, config) => {
+			const fileType = await functions.postedInRoom(message, config);
+			return fileType;
 		}
 
-		const findTrigger = (message, fileList) => {
-			const args = message.content.toLowerCase().split(" ");
-			const triggers = functions.removeFileExtension(fileList)
-			
+		const getTrigger = (fileList, args) => {			
 			const triggerCounter = [];
 			if(fileList.length > 0){
 				for(let i = 0; i < args.length; i++){
-					triggers.forEach((r, indexValue) => {
-						if (r === args[i])
-							triggerCounter.push(indexValue);
+					fileList.forEach((r, indexValue) => {
+						if (functions.removeFileExtension(r) === args[i].toLowerCase())
+							triggerCounter.push(fileList[indexValue]);
 					})
 				}
 			}
-			//Prevents additional words/arguments from being picked up
-			if (triggerCounter[0] !== undefined) return triggerCounter[0];
-			else return undefined
+			if (triggerCounter[0] === undefined) return undefined
+			else return triggerCounter[0];
 		}
 
-		//Checks if secret room
-		functions.checkRoom(message, config)
-		.then(r => {
-			if (r === undefined)
-				trigger(message, "image");
-			else
-				trigger(message, "audio");	
+		const imageTrigger = (message, file) => {
+			message.channel.send({files:[fs.realpathSync(`image/${file}`)]});
+		}
+
+		const audioTrigger = (message, file) => {
+			message.member.voice.channel.join()
+			.then(musicPlayer => {
+				const dispatcher = musicPlayer.play(`audio/${file}`)
+				dispatcher.on('start', () => {});
+				dispatcher.on('finish', () => { return; });
+				dispatcher.on('error', console.error);
+			})
+		}
+
+		checkRoom(message, config)
+		.then(fileType => {
+			
+			const args = message.content.split(/ +/);
+
+			const fileList = fs.readdirSync(`${fileType}/`);
+			const fileName = getTrigger(fileList, args);
+
+			if(fileName === undefined) return;
+	
+			switch(fileType){
+				case "image":
+					imageTrigger(message, fileName);
+					break;
+				case "audio":
+					audioTrigger(message, fileName);
+					break;
+				default:
+					return;
+			}
 		})
 	},
 };

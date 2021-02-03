@@ -1,15 +1,10 @@
-const fs = require('fs');
 const Discord = require('discord.js');
 const client = new Discord.Client();
-const config = require('./config.json');
+const fs = require('fs');
 
 //Custom modules
-
-//-Triggers
+const config = require('./config.json');
 const triggers = require('./triggers.js')
-
-//-Twitch
-const twitch = require('./twitch.js')
 
 //Command files
 client.commands = new Discord.Collection();
@@ -72,10 +67,11 @@ client.on('voiceStateUpdate', (oldState, newState) => {
 client.on('message', async message => {
     //Ignores the message if sent from a bot
     if(message.author.bot) return;
+
     //Commands
     if(message.content.startsWith(config.prefix)) {  
-        const args = message.content.slice(config.prefix.length).trim().split(/ +/);
         //Removes the first element of args and puts it in command
+        const args = message.content.slice(config.prefix.length).trim().split(/ +/);
         const command = args.shift();
         try {
             switch(command){
@@ -94,6 +90,7 @@ client.on('message', async message => {
             console.error(error)
         }
     }
-    else
+    else{
         triggers.execute(message, config);
+    }
 })
