@@ -1,0 +1,12 @@
+[
+		{
+			"id": "",
+			"type":"image/audio",
+			"trigger":"trigger text",
+			"file":"file.mp3",
+			"category": "category",
+			"hidden": 0,
+			"author": "123456778",
+			"uploaded": "date format"
+		}
+]
