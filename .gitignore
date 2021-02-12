@@ -6,3 +6,4 @@ image/
 .eslintrc.json
 config.json
 commands/not working/
+triggers.json
