@@ -1,12 +1,42 @@
 [
-		{
-			"id": "",
-			"type":"image/audio",
-			"trigger":"trigger text",
-			"file":"file.mp3",
-			"category": "category",
-			"hidden": 0,
-			"author": "123456778",
-			"uploaded": "date format"
-		}
+  {
+    "type": "image",
+    "text": "pig",
+    "file": "001.jpg",
+    "category": "category",
+    "author": "123456778",
+    "uploaded": "date format"
+  },
+  {
+    "type": "audio",
+    "text": "airhorn",
+    "file": "002.mp3",
+    "category": "category",
+    "author": "123456778",
+    "uploaded": "date format"
+  },
+  {
+    "type": "image",
+    "text": "kawaii",
+    "file": "002.jpg",
+    "category": "wow",
+    "author": "82919694574551040",
+    "uploaded": "22/02/2021, 18:07:01"
+  },
+  {
+    "type": "image",
+    "text": "naruto",
+    "file": "003.gif",
+    "category": "naruto",
+    "author": "82919694574551040",
+    "uploaded": "22/02/2021, 18:07:45"
+  },
+  {
+    "type": "audio",
+    "text": "shit cunt bitch",
+    "file": "004.mp3",
+    "category": "swearing",
+    "author": "82919694574551040",
+    "uploaded": "22/02/2021, 18:22:50"
+  }
 ]

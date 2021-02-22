@@ -7,124 +7,105 @@ module.exports = {
     description: 'Adds a trigger sound/image',
     args: true,
     alias: "sound",
-	execute(message, config, args) {
-        if(args !== undefined && args[0] === "remove"){
-            if(functions.hasMod(message, config))
-                removeTrigger(message, args[1].toLowerCase());
-            else
-                message.channel.send("Error: unable to use **remove** as a trigger word");
-        }
-        else
-            addTrigger(message, args);
-	},
-};
+	execute (message, config, args) { 
+        const checkTrigger = async (message, trigger) =>
+        {
+            fetch(trigger.url)
+            .then(res => {
+                
+                //checks if the URL is valid
+                try{
+                    res.body;
+                }
+                catch (e){
+                    message.channel.send("Error: invalid URL")
+                    return;
+                }
+                const fileType = functions.getFileType(res);
+                if(fileType === "image" || fileType === "audio"){
 
-async function addTrigger(message, args){   
-
-    const getTrigger = (message, args) => {
+                    const triggers = JSON.parse(fs.readFileSync("./triggers.json"));
+                    //Checks if the trigger word is already used as a filename
+                    if(triggers.find(r => r.text === trigger.text && r.type === fileType))
+                        return message.channel.send(`Error: ${fileType} trigger **${trigger.text}** already exists`);
         
-        const attachment = message.attachments.first()
-        const triggerInfo = {attachmentUrl:"", attachmentExtension:"", triggerWord:""}
+                    if (Number(res.headers.get('content-length')) > 1024 * 1024 && fileType === "audio") 
+                        return message.channel.send(`Error: ${fileType} file exceeds more than 1MB`);
+                    
+                    if (Number(res.headers.get('content-length')) > 1024 * 3072 && fileType === "image") 
+                        return message.channel.send(`Error: ${fileType} file exceeds more than 3MB`);
 
-        //!trigger
-        if(message.attachments.size !== 0){
-                triggerInfo.attachmentUrl = attachment.url;
-                triggerInfo.attachmentExtension = attachment.url.split(".").pop();
-
-                //!trigger
-                if(message.attachments.size !== 0 && args[0] === undefined)
-                    triggerInfo.triggerWord = functions.removeFileExtension(attachment.url).toLowerCase();
-
-                //!trigger [word]
-                else
-                    triggerInfo.triggerWord = args[0].toLowerCase();
+                    trigger.type = fileType;
+                    addTrigger(message, trigger, triggers, res);
+                }
+                else message.channel.send("Invalid file type");
+            });
         }
-        else{
-        //!trigger [link]
-            if(args[1] === undefined){
-                triggerInfo.attachmentUrl = args[0];
-                triggerInfo.triggerWord = functions.removeFileExtension(args[0]).toLowerCase();
-                triggerInfo.attachmentExtension = args[0].split(".").pop();
+
+        const addTrigger = async (message, trigger, triggers, res) => {
+            console.log("0".concat(triggers.length));
+            const getIndex = triggers => {
+                if (triggers.length < 10)
+                    return "00".concat(triggers.length);
+                if (triggers.length > 9 && triggers.length < 100)
+                    return "0".concat(triggers.length)
             }
-        //!trigger [word] [link]
-            if(args[1] !== undefined){
-                triggerInfo.attachmentUrl = args[1];
-                triggerInfo.triggerWord = args[0].toLowerCase();
-                triggerInfo.attachmentExtension = args[1].split(".").pop();
-            }                
+    
+                    const fileExtension = trigger.url.split(".").pop();
+                    const triggerIndex = getIndex(triggers);
+                    const file = fs.createWriteStream(`./triggers/${triggerIndex}.${fileExtension}`);
+                    res.body.pipe(file);
+
+                triggers.push({
+                    type:trigger.type,
+                    text:trigger.text,
+                    file:`${triggerIndex}.${fileExtension}`,
+                    category:trigger.category,
+                    author:message.author.id,
+                    uploaded: new Date().toLocaleString()
+                })
+                fs.writeFileSync("./triggers.json", JSON.stringify(triggers, null, 2));
+                message.channel.send(`${trigger.type} trigger **${trigger.text}** successfully added`);
         }
 
-        return triggerInfo;
-    }
-
-    //Checks if there are no attachments and no arguments
-    if(message.attachments.size === 0 && args[0] === undefined)
-    { message.channel.send("Error: invalid arguments. See !help"); return; }
-
-    //Checks if there are no attachments, only 1 argument and the 1 argument has an invalid link
-    if(message.attachments.size === 0 && args[1] === undefined && !functions.validateLink(args[0]))
-            { message.channel.send("Error: invalid arguments. See !help"); return; }
-
-    //Gets the URL and extension)
-    //const attachment = message.attachments.first()
-    const {attachmentUrl , attachmentExtension, triggerWord} = getTrigger(message, args)
-
-    if(!functions.validateLink(attachmentUrl)) 
-    { message.channel.send("Error: not valid URL"); return; }
-
-    //Creates the trigger word from attachment URL or argument
-    //const triggerWord = await getTriggerWord(attachment.url, args)
-
-    if(!functions.hasAlphabeticCharactersOnly(triggerWord))
-        { message.channel.send("Error: word cannot contain special characters or numbers"); return; }
-
-    fetch(attachmentUrl)
-    .then(res => {
-
-        //checks if the URL is valid
-        try{
-            res.body;
-        }
-        catch (e){
-            message.channel.send("Error: invalid URL")
-            return;
-        }
-        const fileType = functions.getFileType(res);
-
-        //Checks if the trigger word is already used as a filename
-        if(fileType === "image" || fileType === "audio"){
-
-            const fileList = fs.readdirSync(fileType+"/")
-            const commandList = functions.removeFileExtension(fileList);
-            if(commandList.find(r => r === triggerWord))
-            { message.channel.send(`Error: ${fileType} trigger **${triggerWord}** already exists`); return; }
-
-            if (Number(res.headers.get('content-length')) > 1024 * 1024 && fileType === "audio") 
-            { message.channel.send(`Error: ${fileType} file exceeds more than 1MB`); return;}
+        const trigger = {text:"", url:"", category:"", type:""};
+        
+        //Text
+        message.channel.send("Enter the trigger text e.g. 'final fantasy'");
+        functions.getInputFromMessage(message, message.author.id, message.channel.id).then(mtext => {
             
-            if (Number(res.headers.get('content-length')) > 1024 * 3072 && fileType === "image") 
-            { message.channel.send(`Error: ${fileType} file exceeds more than 3MB`); return;}
+            if(mtext === undefined || mtext.content === "")
+                return message.channel.send("Error: nothing entered");
 
-            const file = fs.createWriteStream(`./${fileType}/${triggerWord}.${attachmentExtension}`);
-            res.body.pipe(file);
-            message.channel.send(`${fileType} trigger **${triggerWord}** successfully added`);
-        }
-        else
-            message.channel.send("Error: invalid file type or invalid URL");
-    })
-}
+            trigger.text = mtext.content.toLowerCase();
 
-async function removeTrigger(message, triggerWord){
-    const fileList = fs.readdirSync("audio/")
-    if(fileList.length === 0) { message.channel.send("Error: no sound clips have been added to the server"); return; }
+            if(functions.hasSpecialCharaters(trigger.text))
+                return message.channel.send("Error: cannot use special characters. Only numbers, letters and spaces are allowed");
 
-    const soundList = functions.removeFileExtension(fileList);
-    for (let i = 0; i < soundList.length; i++){
-        if (soundList[i] === triggerWord){
-            fs.unlinkSync(`./audio/${fileList[i]}`)
-            message.channel.send(`Sound clip **${triggerWord}** successfully removed`);
-            return;
-        }
-        if (i+1 === soundList.length) message.channel.send("Error: sound clip does not exist")
-    }
-}
+            //File
+            message.channel.send("Submit the file. Either paste the URL or upload file");
+            functions.getInputFromMessage(message, message.author.id, message.channel.id).then(murl => {
+                if(murl === undefined)
+                    return message.channel.send("Error: nothing entered");
+                if (murl.attachments.first() === undefined)
+                        trigger.url = murl.content;
+                    else
+                        trigger.url = murl.attachments.first().url;
+                if (!functions.validateLink(trigger.url))
+                    return message.channel.send("Error: invalid URL");
+
+            //Category
+            message.channel.send("Enter the trigger category e.g. 'animals'");
+                functions.getInputFromMessage(message, message.author.id, message.channel.id).then(mcategory => {
+                    if(mcategory === undefined  || mcategory.content === "")
+                        return message.channel.send("Error: nothing entered");
+                    
+                    trigger.category = mcategory.content;
+                    if(functions.hasSpecialCharaters(trigger.text))
+                        return message.channel.send("Error: cannot use special characters. Only numbers, letters and spaces are allowed");
+                    checkTrigger(message, trigger);
+                })
+            });
+        })
+    },
+};

@@ -4,7 +4,7 @@ const fs = require('fs');
 
 //Custom modules
 const config = require('./config.json');
-const triggers = require('./triggers.js')
+const functions = require ('./functions.js');
 
 //Command files
 client.commands = new Discord.Collection();
@@ -47,7 +47,8 @@ client.on('voiceStateUpdate', (oldState, newState) => {
                 console.log("removing radio role");
                 newState.member.roles.remove([config.radioRole, config.voiceRole]);
             }
-    }    
+    } 
+    //Voice Chat role   
     else{
         if (((newState.channelID && !newState.member.roles.cache.find(r => r.id == config.voiceRole) && !newState.member.user.bot))){
             console.log("adding role");
@@ -66,8 +67,7 @@ client.on('voiceStateUpdate', (oldState, newState) => {
 //Event - When a message has been sent
 client.on('message', async message => {
     //Ignores the message if sent from a bot
-    if(message.author.bot) return;
-
+    if(message.author.bot || message.channel.type === "dm" ) return;
     //Commands
     if(message.content.startsWith(config.prefix)) {  
         //Removes the first element of args and puts it in command
@@ -87,10 +87,10 @@ client.on('message', async message => {
             return;
         }
         catch (error){
-            console.error(error)
+            throw(message.content + " is an unknown function");
         }
     }
     else{
-        triggers.execute(message, config);
+        functions.trigger(message);
     }
 })

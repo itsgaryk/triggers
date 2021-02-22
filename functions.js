@@ -1,4 +1,15 @@
 const fs = require('fs');
+const config = require("./config.json")
+const Discord = require ("discord.js");
+const triggers = require ("./triggers.json");
+const {OpusEncoder} = require('@discordjs/opus');
+// Specify 48kHz sampling rate and 2 channel size.
+const encoder = new OpusEncoder(48000, 2);
+
+// Encode and decode.
+//const encoded = encoder.encode(buffer);
+//const decoded = encoder.decode(encoded);
+
 module.exports = {
     hasMod,
     hasSpecialCharaters,
@@ -11,10 +22,12 @@ module.exports = {
     downloadFile,
     sortArray,
     checkRoom,
-    postedInRoom,
+    isRoom,
+    getInputFromMessage,
+    trigger
 };
 
-function hasMod(message,config){
+function hasMod(message){
     const memberRoles = message.member.roles.cache;
     if (config.modRole < 1) return false;
     if (memberRoles.find(r => r.id === config.modRole) 
@@ -23,7 +36,7 @@ function hasMod(message,config){
 }
 
 function hasSpecialCharaters(n){
-    const specialCharacters = /[^a-zA-Z0-9\-\/]/;
+    const specialCharacters = /[^a-zA-Z0-9 _\-\/]/;
     if(specialCharacters.test(n)) return true;
     else return false;
 }
@@ -99,55 +112,41 @@ function sortArray(n){
     })
 }
 
-//Returns a value if the message channel is a secret room and the author is the room owner
-async function checkRoom(message, config){
-    const roomId = [];
+//Returns true if the member already has a secret room
+async function checkRoom(message){
     const category = message.guild.channels.cache.get(config.roomCategory)
-    
     //checks if the message was posted in the member's room by the owner
-    if (category.children.size > 0) {
-        category.children.forEach(channel => {
-                channel.permissionOverwrites.forEach(m => {
-                    //checks if ID is the member's ID
-                    if (m.id === message.author.id)
-                        roomId.push(channel.id);
-            })
-        })
+    for(const child of category.children){
+        const channel = message.guild.channels.cache.get(child[0]);
+        for(const role of channel.permissionOverwrites){
+            //checks if ID is the member's ID
+            if (role[0] === message.author.id)
+                { return 1; }
+        }
     }
-    if(roomId.length > 0) return roomId[0];
-    else return undefined;   
+    return 0;
 }
 
-async function postedInRoom(message, config){
-    const roomId = [];
-    const category = message.guild.channels.cache.get(config.roomCategory)
-    
-    //Marcios sound commands room and voice-chat
-    if (message.channel.id === "800091815230570516")
-        roomId.push(m.id);
-
+//Checks if the channel is a secret room
+async function isRoom(message){
+    const category = message.guild.channels.cache.get(config.roomCategory);
     //checks if the channel has the voice chat role
-    message.channel.permissionOverwrites.forEach( m => {
-        if (m.id === config.voiceRole)
-            roomId.push(m.id);
-    })
+    for(const role of message.channel.permissionOverwrites){
+        if (role[0] === config.voiceRole)
+            { return 1; }
+    }
 
     //dev channel
     if (message.channel.id === "801191295829671936")
-        return "image";   
+        return 0;
 
-    //checks if the message was posted in the member's room by the owner
-    if (category.children.size > 0) {
-        category.children.forEach(channel => {
-            if (message.channel.id === channel.id)
-                roomId.push("audio");
-            })
+    //checks if the message was posted in a secret room
+    for(const child of category.children){
+        if (child[0] === message.channel.id)
+            { return 1; }
     }
-    if (roomId[0] === undefined) return "image";
-    else return roomId[0];
+    return 0;
 }
-
-
 
 function removeFileExtension(fileList){
     const getFileName = arg => {
@@ -167,3 +166,58 @@ function removeFileExtension(fileList){
     else
         return getFileName(fileList);
 };
+
+//Author is message.author.id or a specified User ID. Channel is message.channel.id or a specified Channel ID
+async function getInputFromMessage (message, author, channel) {
+    const filter = response => {
+        return response.author.id === author && response.channel.id === channel;
+    };        
+
+    newMessage = await message.channel.awaitMessages(filter, { max: 1, time: 30000, errors: ['time'] })
+    .catch(() => {
+        console.log("nothing");
+    });
+
+    if (newMessage === undefined)    
+        return undefined;
+    else
+        return newMessage.first();
+}
+
+async function trigger(message){
+    const executeTrigger = (message, trigger, type) => {
+        switch(type){
+            case "audio":
+                message.member.voice.channel.join()
+                .then(musicPlayer => {
+                    const dispatcher = musicPlayer.play(`triggers/${trigger.file}`)
+                    dispatcher.on('start', () => {});
+                    dispatcher.on('finish', () => { return;});
+                    dispatcher.on('error', console.error);
+                })
+                break;
+            case "image":
+                message.channel.send({files:[fs.realpathSync(`triggers/${trigger.file}`)]});
+                break;
+            default:
+                return;
+        }
+    }
+    
+    const triggers = JSON.parse(fs.readFileSync("triggers.json"));
+    isRoom(message)
+    .then(room => {
+        for(let i = 0; i < triggers.length; i++){
+            console.log(triggers[i].text);
+            //Checks if the message contains the trigger word/phrase
+            if ((message.content.toLocaleLowerCase().includes(triggers[i].text) || message.content.toLocaleLowerCase() === triggers[i].text)){
+                //If it's a secret room play any trigger
+                if (room)
+                        executeTrigger(message, triggers[i], "audio");
+                //Else non-secret rooms can only allow image triggers
+                if (!room && triggers[i].type === "image")
+                        executeTrigger(message, triggers[i], "image");
+            }
+        }
+    })
+}

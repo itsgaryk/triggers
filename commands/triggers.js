@@ -1,13 +1,11 @@
 const functions = require("../functions.js")
 const fs = require('fs');
-const Discord = require ("discord.js");
 
 module.exports = {
 	name: 'triggers',
     description: 'Displays all available triggers',
     args: false,
     alias: "sounds",
-    /** * @param {Discord.Message} [message] */
 	execute(message, config, args) {
         
         const getFileType = (message) => {
