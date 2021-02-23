@@ -1,1 +1,90 @@
-[]
+[
+  {
+    "type": "image",
+    "text": "pig",
+    "file": "001.jpg",
+    "category": "category",
+    "author": "123456778",
+    "uploaded": "date format"
+  },
+  {
+    "type": "audio",
+    "text": "airhorn",
+    "file": "002.mp3",
+    "category": "category",
+    "author": "123456778",
+    "uploaded": "date format"
+  },
+  {
+    "type": "image",
+    "text": "kawaii",
+    "file": "002.jpg",
+    "category": "wow",
+    "author": "82919694574551040",
+    "uploaded": "22/02/2021, 18:07:01"
+  },
+  {
+    "type": "image",
+    "text": "naruto",
+    "file": "003.gif",
+    "category": "naruto",
+    "author": "82919694574551040",
+    "uploaded": "22/02/2021, 18:07:45"
+  },
+  {
+    "type": "audio",
+    "text": "shit cunt bitch",
+    "file": "004.mp3",
+    "category": "swearing",
+    "author": "82919694574551040",
+    "uploaded": "22/02/2021, 18:22:50"
+  },
+  {
+    "type": "image",
+    "text": "pigg",
+    "file": "005.",
+    "category": "",
+    "author": "82919694574551040",
+    "uploaded": "23/02/2021, 16:07:06"
+  },
+  {
+    "type": "image",
+    "text": "fff",
+    "file": "006.sdlkfjslkdfjl",
+    "category": "",
+    "author": "82919694574551040",
+    "uploaded": "23/02/2021, 16:36:34"
+  },
+  {
+    "type": "image",
+    "text": "sdkfjlsdkfj",
+    "file": "007.gif",
+    "category": "naruto",
+    "author": "82919694574551040",
+    "uploaded": "23/02/2021, 18:42:38"
+  },
+  {
+    "type": "text",
+    "text": "ofsdffs",
+    "file": ".",
+    "category": "lklkkl",
+    "author": "82919694574551040",
+    "uploaded": "23/02/2021, 18:43:38"
+  },
+  {
+    "type": "text",
+    "text": "marcio is a bitch",
+    "file": ".",
+    "category": "important",
+    "author": "82919694574551040",
+    "uploaded": "23/02/2021, 18:46:56"
+  },
+  {
+    "type": "text",
+    "text": "fuckfuck",
+    "file": "omg fuck",
+    "category": "amazing",
+    "author": "82919694574551040",
+    "uploaded": "23/02/2021, 19:06:24"
+  }
+]
