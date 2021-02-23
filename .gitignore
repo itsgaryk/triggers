@@ -5,4 +5,5 @@ ffmpeg.exe
 commands/not working/
 triggers.json
 commands/room.js
-!triggers/.keep
+triggers/
+!.keep
