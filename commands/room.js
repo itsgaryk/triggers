@@ -1,22 +1,26 @@
-const functions = require('../functions.js');
 module.exports = {
 	name: 'room',
     description: 'Creates a secret room',
     args: true,
-	execute(message, config, args) {
+	execute(message, config, functions, args) {
         
         if(args[0] === undefined)
         { createRoom(message, config, message.author.id); return; }
 
-        if(args[0] === "remove") {
-            if (functions.hasMod(message, config)){
-                removeRoom(message, config, functions.removeNonNumericCharacters(args[1]));
-            }
-            else 
-                message.channel.send("Error: you don't have permission to perform that command.");
+        else {
+            switch(args[0])
+            {
+                case "remove":
+                    if (functions.hasMod(message)){
+                        removeRoom(message, config, functions.removeNonNumericCharacters(args[1]));
+                    }
+                    else 
+                        message.channel.send("Error: you don't have permission to perform that command.");
+                    break;
+                default:
+                    message.channel.send("Error: invalid argument after room. See !help");
+            };
         }
-        else
-            message.channel.send("Error: invalid argument after room. See !help");
     },
 };
 
@@ -27,9 +31,9 @@ async function createRoom(message, config){
         if (config.roomName < 1)
             { message.channel.send("Error: missing channel name in config file"); return; }
 
-        functions.checkRoom(message, config)
+        functions.checkRoom(message)
         .then(r => {
-            if(r === undefined){
+            if(r === 0){
                 message.guild.channels.create(config.roomName, {"parent" : config.roomCategory})
                 .then(newChannel => {
                     message.guild.channels.cache.get(newChannel.id).updateOverwrite(message.author,{VIEW_CHANNEL: true});

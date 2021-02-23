@@ -1,5 +1,21 @@
 const Discord = require('discord.js');
-const client = new Discord.Client();
+const client = new Discord.Client({
+    presence:{
+        activity: {
+            name: "!help for commands",
+            type: "LISTENING"
+        }
+    },
+    ws : {
+        intents: [
+            'GUILDS', 
+            'GUILD_MESSAGES',
+            'GUILD_PRESENCES',
+            'GUILD_MESSAGE_REACTIONS',
+            "GUILD_VOICE_STATES"
+        ]
+    }
+});
 const fs = require('fs');
 
 //Custom modules
@@ -17,13 +33,20 @@ for (const file of commandFiles) {
 client.login(config.token);
 client.once('ready', () => {
     console.log('Locked and loaded!')    
-
 });
 
-//Event - On Promise ready. Sets the statusu of the bot
-client.on('ready', () => {
-            client.user.setStatus("Online");
-            client.user.setActivity("!help for commands", {type: "LISTENING"});
+//Event - when a reaction is added to a message
+client.on('messageReactionAdd', async (reaction, user) => {
+    try {
+        const emoji = reaction.emoji;
+        const message = reaction.message;
+        if(emoji.name === "😀")
+            message.channel.send("😀");
+    } catch (error) {
+        console.error('Something went wrong when fetching the message: ', error);
+        // Return as `reaction.message.author` may be undefined/null
+        return;
+    }
 })
 
 //Event - Status change to voice channels
@@ -73,24 +96,11 @@ client.on('message', async message => {
         //Removes the first element of args and puts it in command
         const args = message.content.slice(config.prefix.length).trim().split(/ +/);
         const command = args.shift();
+        //special exceptions
         try {
-            switch(command){
-                case "sound":
-                    client.commands.get("trigger").execute(message, config, args);
-                    break;
-                case "sounds":
-                    client.commands.get("triggers").execute(message, config, args);             
-                    break;
-                default:
-                    client.commands.get(command).execute(message, config, args);
-            }
-            return;
-        }
-        catch (error){
-            throw(message.content + " is an unknown function");
-        }
-    }
-    else{
+            client.commands.get(command).execute(message, config, functions, args);
+        } catch (error){
+            console.error("Command does not exist", error); }
+    } else
         functions.trigger(message);
-    }
 })

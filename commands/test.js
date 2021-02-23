@@ -1,11 +1,16 @@
-const functions = require('../functions.js');
 const fetch = require('node-fetch')
-
 module.exports = {
 	name: 'test',
         description: 'Ping!',
         args: false,
-	execute(message, config, args,) {
+        /** * @param {Discord.Message} [message] */
+	execute(message, args, functions) {
+                console.log(functions.hasMod(message));
+        },
+};
+
+/*
+                //console.log(message.content.toLocaleLowerCase());
 
         fetch('https://cdn.discordapp.com/attachments/775016095596937241/798278051330392094/YfTpN6L.jpg')
                 .then(res => {
@@ -57,5 +62,4 @@ module.exports = {
         //console.log(serverConfig.triggers[0].triggerWord)
         //console.log(serverConfig.triggers.map(r => r.triggerWord))
         return;
-	},
-};
+        */    

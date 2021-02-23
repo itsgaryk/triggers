@@ -17,9 +17,7 @@ module.exports = {
     removeFileExtension,
     removeNonNumericCharacters,
     isGuildMember,
-    validateLink,
     getFileType,
-    downloadFile,
     sortArray,
     checkRoom,
     isRoom,
@@ -77,7 +75,7 @@ async function isGuildMember(message, memberId){
 function validateLink(n){
     try{
         // eslint-disable-next-line no-unused-vars
-        const website = new URL(n)
+        const website = new URL(n);
         return true;
     }
     catch (e) {
@@ -89,7 +87,7 @@ function validateLink(n){
 
 function getFileType(res){
     try{
-        const newContentType = res.headers.get('content-type').split("/")
+        const newContentType = res.headers.get('content-type').split("/");
         return newContentType[0];
     }
     catch (e){
@@ -98,10 +96,6 @@ function getFileType(res){
     }
 }
 
-function downloadFile(link){
-    file = new File();
-    return file;
-}
 //Sorts array into alphabetical order
 function sortArray(n){
     if(n == 0) return;
@@ -195,12 +189,12 @@ async function trigger(message){
                     dispatcher.on('finish', () => { return;});
                     dispatcher.on('error', console.error);
                 })
-                break;
+                return;
             case "image":
                 message.channel.send({files:[fs.realpathSync(`triggers/${trigger.file}`)]});
-                break;
-            default:
                 return;
+            case "text":
+                message.channel.send(trigger.file);
         }
     }
     
@@ -208,7 +202,6 @@ async function trigger(message){
     isRoom(message)
     .then(room => {
         for(let i = 0; i < triggers.length; i++){
-            console.log(triggers[i].text);
             //Checks if the message contains the trigger word/phrase
             if ((message.content.toLocaleLowerCase().includes(triggers[i].text) || message.content.toLocaleLowerCase() === triggers[i].text)){
                 //If it's a secret room play any trigger
@@ -217,6 +210,8 @@ async function trigger(message){
                 //Else non-secret rooms can only allow image triggers
                 if (!room && triggers[i].type === "image")
                         executeTrigger(message, triggers[i], "image");
+                if (!room && triggers[i].type === "text")
+                        executeTrigger(message, triggers[i], "text");
             }
         }
     })

@@ -1,32 +1,38 @@
-const functions = require("../functions.js")
 const fs = require('fs');
-
 module.exports = {
 	name: 'triggers',
     description: 'Displays all available triggers',
     args: false,
     alias: "sounds",
-	execute(message, config, args) {
+	execute(message, config, functions, args) {
+
+        const getList = (triggers, fileType) => {
+            const triggerList = [];
+            triggers.find(r => {if(r.type === fileType) triggerList.push(r.text);})
+            return functions.sortArray(triggerList);
+        }
+
+        const triggers = JSON.parse(fs.readFileSync(`./triggers.json`));
+
+        if (triggers.length === 0)
+            return message.channel.send("No triggers have been added");
         
-        const getFileType = (message) => {
-            const arguments = message.content.slice(config.prefix.length).trim().split(/ +/);
-            if (arguments[0] === "triggers")
-                return "image";
-            if (arguments[0] === "sounds")
-                return "audio"
+        const theMessage = [`**There are ${triggers.length} triggers available**\n\n`];
+        const fileTypes = ["text", "image", "audio"]
+            
+        for(const fileType of fileTypes){
+            theMessage.push(fileType + " triggers" + "```")
+            const triggerList = getList(triggers, fileType);
+            if(triggerList === [])
+                theMessage.push(`No ${fileType} triggers have been added` + "```");
+            else {
+                for (let i = 0; i < triggerList.length; i++){
+                    triggerList[i] = i+1 + "." + triggerList[i] + "   ";
+                    if(i === triggerList.length-1)                    
+                        theMessage.push(triggerList.join(""), "```");
+                }
+            }
         }
-
-        const fileType = getFileType(message);
-        const theMessage = [];
-        const fileList = fs.readdirSync(`${fileType}/`)
-        if(fileList.length === 0) message.channel.send(`No ${fileType} triggers have been added to the server`)
-        else {
-            theMessage.push("**Available Triggers**")        
-            const commandList = functions.removeFileExtension(fileList);
-            const orderedList = functions.sortArray(commandList);
-            theMessage.push("```" + orderedList.join("  ") + "```");
-        }
-
         message.channel.send(theMessage.join(""));
-	},
+    }, 
 };

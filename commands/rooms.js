@@ -1,10 +1,9 @@
-const { isGuildMember } = require("../functions");
-
 module.exports = {
 	name: 'rooms',
     description: 'Ping!',
     args: false,
-	execute(message, config, args) {
+    /** * @param {Discord.Message} [message] */
+	execute(message, config, functions, args) {
         const roomOwners = [];
         const category = message.guild.channels.cache.get(config.roomCategory)
         if (category.children.size < 1)
