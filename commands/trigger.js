@@ -33,9 +33,11 @@ module.exports = {
                 {message.channel.send("Error: cannot use special characters. Only numbers, letters and spaces are allowed"); return "";}
 
             if(existsTrigger(type, mtext.content.toLowerCase(), triggers))
-                { message.channel.send(`Error: ${type} trigger **${mtext}** already exists`); return "";}
-            else
-                return mtext.content.toLowerCase();
+                { message.channel.send(`Error: ${type} trigger **${mtext.content}** already exists`); return "";}
+            
+            if(["text", "image", "audio"].some(m => m === mtext.content))
+                {message.channel.send(`Error: unable to use **${mtext.content}** as a trigger. Reserved for !deltrigger`);return "";}
+            else return mtext.content.toLowerCase()    
 
         }
 
@@ -66,7 +68,7 @@ module.exports = {
             
             const triggerURL = await getURL(murl)
             const check = await checkURL(triggerURL, type);
-            console.log(check);
+
             if(check === "pass") return triggerURL;
             else return "";
         }
@@ -95,7 +97,6 @@ module.exports = {
             const res = await fetch(url);       
             const fileType = functions.getFileType(res);
 
-            console.log(fileType);
             if(fileType === "image" || fileType === "audio"){
                 if (Number(res.headers.get('content-length')) > 1024 * 1024 && fileType === "audio")
                     return message.channel.send(`Error: ${fileType} file exceeds more than 1MB`);
@@ -128,21 +129,12 @@ module.exports = {
                 file.extension = trigger.url.split(".").pop();
                 file.index = getIndex(triggers);
                 file.name = fs.createWriteStream(`./triggers/${file.index}.${file.extension}`);
+                trigger.response = `${file.index}.${file.extension}`;
                 fetch(trigger.url)
                 .then(res => {
                     res.body.pipe(file.name);
-                    trigger.type = functions.getFileType(res);
-                    triggers.push({
-                        type:trigger.type,
-                        text:trigger.text,
-                        file:`${file.index}.${file.extension}`,
-                        category:trigger.category,
-                        author:message.author.id,
-                        uploaded: new Date().toLocaleString()
-                    })
-                });
+                })
             }
-            else{
             triggers.push({
                 type:trigger.type,
                 text:trigger.text,
@@ -151,7 +143,6 @@ module.exports = {
                 author:message.author.id,
                 uploaded: new Date().toLocaleString()
             })
-            }
             fs.writeFileSync("./triggers.json", JSON.stringify(triggers, null, 2));
             message.channel.send(`${trigger.type} trigger **${trigger.text}** successfully added`);
         }
