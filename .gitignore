@@ -1,9 +1,8 @@
 node_modules/
 config.json
-audio/
 ffmpeg.exe
-image/
 .eslintrc.json
-config.json
 commands/not working/
 triggers.json
+commands/room.js
+!triggers/.keep
