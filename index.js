@@ -3,7 +3,7 @@ const Discord = require('discord.js');
 
 //Custom modules
 const config = require('./config.json');
-const functions = require ('./functions.js');
+const trigger = require ('./trigger.js');
 
 const client = new Discord.Client({
     presence:{
@@ -34,9 +34,20 @@ for (const file of commandFiles) {
 client.login(config.token);
 client.once('ready', () => {
     console.log('Locked and loaded!');
-    client.channels.fetch(config.roomCategory)
-    .then(channel => functions.setCategory(channel))
-    .catch(e => console.log(error));
+        //Verifies voice chat role
+        client.guilds.fetch("775016095596937238").then(guild => {
+            guild.roles.fetch("793013387612520468");
+        }).catch(e => {
+            console.log("Invalid voice chat role")
+            process.exit(1);
+        });
+        //Verifies category channel and sends it to functions
+        client.channels.fetch(config.roomCategory)
+        .then(channel => trigger.category(channel))
+        .catch(e => {
+            console.log("Invalid category channel")
+            process.exit(1);
+        });
 });
 
 //Event - when a reaction is added to a message
@@ -72,14 +83,20 @@ client.on('message', message => {
     if(message.author.bot || message.channel.type === "dm" ) return;
     //Commands
     if(message.content.startsWith(config.prefix) || message.content.startsWith(client.user)){
+        
+        let argument;
         //Removes the first element of args and puts it in command
-        const args = message.content.slice(config.prefix.length).trim().split(/ +/);
+        if(message.content.startsWith(config.prefix))
+            argument = config.prefix;
+        else
+            argument = client.user //.username
+        const args = message.content.slice(argument.length).trim().split(/ +/);
         const command = args.shift();
         //special exceptions
         try {
-            client.commands.get(command).execute(message, config, functions, args);
+            client.commands.get(command).execute(message, args);
         } catch (error){
             console.error("Command does not exist", error); }
     } else
-        functions.trigger(message);
+        trigger.execute(message);
 })

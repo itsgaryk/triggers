@@ -1,58 +1,56 @@
+const {roomCategory, roomName} = require("../config.json");
+const {isGuildMember} = require("../functions.js");
+
 module.exports = {
 	name: 'room',
     description: 'Creates a secret room',
     args: true,
-	execute(message, config, functions, args) {
-        
-        if(args[0] === undefined)
-        { createRoom(message, config, message.author.id); return; }
-
-        else {
-            switch(args[0])
-            {
-                case "remove":
-                    if (functions.hasMod(message)){
-                        removeRoom(message, config, functions.removeNonNumericCharacters(args[1]));
-                    }
-                    else 
-                        message.channel.send("Error: you don't have permission to perform that command.");
-                    break;
-                default:
-                    message.channel.send("Error: invalid argument after room. See !help");
-            };
+	execute(message, args) {
+        //Returns the channel object if the member has a secret room
+        const getRoom = member =>{
+            //checks if the message was posted in the member's room by the owner
+            for(const child of message.guild.channels.cache.get(channelsroomCategory)){
+                if(child.channel.permissionOverwrites.role.id.some(member.id))
+                        return child;
+            }
         }
-    },
-};
 
-async function createRoom(message, config){
-        if (config.roomCategory < 1)
-            { message.channel.send("Error: missing channel category in config file"); return; }
-
-        if (config.roomName < 1)
-            { message.channel.send("Error: missing channel name in config file"); return; }
-
-        functions.checkRoom(message)
-        .then(r => {
-            if(r === 0){
-                message.guild.channels.create(config.roomName, {"parent" : config.roomCategory})
+        const createRoom = member => {
+            //Verify argument
+            if(room === undefined)
+                message.channel.send(`Error: secret room already exists - ${getRoom(member)}`);
+            else{
+                message.guild.channels.create(roomName, {"parent" : roomCategory})
                 .then(newChannel => {
-                    message.guild.channels.cache.get(newChannel.id).updateOverwrite(message.author,{VIEW_CHANNEL: true});
+                    newChannel.updateOverwrite(message.author,{VIEW_CHANNEL: true});
                     message.channel.send(`Secret Room ${newChannel} has successfully been created`);
                 });
             }
-            else
-                message.channel.send(`Error: You already have a secret room. Don't be greedy!`);            
-        })
-}
-
-async function removeRoom(message, config, argRoom){
-    getRoom(message, config, argRoom).then(room =>  {
-        if(room === undefined)
-            { message.channel.send("Error: member does not have a secret room"); return; }
-        else {
-            const deleteChannel = message.guild.channels.cache.get(room);
-            deleteChannel.delete()
-            message.channel.send(`Secret Room belonging to <@${argRoom}> has successfully been removed`);
         }
-    })
-}
+        //Removes rooms where the permission overwrite IDs are equal to the category channel permission overwrite IDs
+        //This is useful when a member leaves the server
+        //Another option would be to have a category channel for archived secret rooms. And !room cleanup moves the channel
+        const cleanRooms = () => {
+
+        }
+
+        if(args[0] === undefined){
+            createRoom(message.author);
+        }
+
+        switch(args[0]){
+            case("add"):
+                if(args[1] === undefined) break;
+                createRoom(args[1]); break;
+            case("remove"):
+                if(args[1] === undefined) break;
+                getRoom().then(room =>  {
+                    if(room === undefined)
+                        message.channel.send("Member does not have a secret room");
+                    else 
+                        room.delete().then(() => message.channel.send(`Secret Room belonging to ${arg[1]} has successfully been removed`))
+                })
+            default: return message.channel.send("Error: invalid arguments")
+        }
+    },
+};

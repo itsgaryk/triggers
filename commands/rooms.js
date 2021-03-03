@@ -3,7 +3,7 @@ module.exports = {
     description: 'Ping!',
     args: false,
     /** * @param {Discord.Message} [message] */
-	execute(message, config, functions, args) {
+	execute(message) {
         const roomOwners = [];
         const category = message.guild.channels.cache.get(config.roomCategory)
         if (category.children.size < 1)
