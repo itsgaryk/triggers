@@ -46,8 +46,8 @@ async function validateURL(n){
 	const controller = new AbortController();
 	const signal  = controller.signal
 	const timeout = setTimeout(() => controller.abort(), 1500);
-	await fetch(n, {signal: controller.signal})
-    return true;
+	const res = await fetch(n, {signal: controller.signal})
+    return res;
 }
 
 function getFileType(res){
@@ -63,7 +63,7 @@ function getFileType(res){
 
 //Sorts array into alphabetical order
 function sortArray(n){
-    if(n.length === 0) return;
+    if(n.length === 0) return [];
     return n.sort(function(a, b){
         if(a < b) { return -1; }
         if(a > b) { return 1; }

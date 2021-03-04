@@ -3,7 +3,8 @@ const Discord = require('discord.js');
 
 //Custom modules
 const config = require('./config.json');
-const trigger = require ('./trigger.js');
+const triggers = require ('./triggers.js');
+const rooms = require("./rooms.js")
 
 const client = new Discord.Client({
     presence:{
@@ -23,29 +24,24 @@ const client = new Discord.Client({
     }
 });
 
-//Command files
-client.commands = new Discord.Collection();
-const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
-for (const file of commandFiles) {
-    const command =  require(`./commands/${file}`);
-    client.commands.set(command.name, command);
-}
-
 client.login(config.token);
 client.once('ready', () => {
     console.log('Locked and loaded!');
         //Verifies voice chat role
         client.guilds.fetch("775016095596937238").then(guild => {
-            guild.roles.fetch("793013387612520468");
+            guild.roles.fetch(config.voiceRole)
+            .catch(e => {
+                console.log(e)
+                process.exit(1);
+            });
         }).catch(e => {
-            console.log("Invalid voice chat role")
+            console.log(e + "\tInvalid voice chat role")
             process.exit(1);
         });
-        //Verifies category channel and sends it to functions
+        //Verifies category channel
         client.channels.fetch(config.roomCategory)
-        .then(channel => trigger.category(channel))
         .catch(e => {
-            console.log("Invalid category channel")
+            console.log(e + "\tInvalid category channel")
             process.exit(1);
         });
 });
@@ -93,10 +89,13 @@ client.on('message', message => {
         const args = message.content.slice(argument.length).trim().split(/ +/);
         const command = args.shift();
         //special exceptions
-        try {
-            client.commands.get(command).execute(message, args);
-        } catch (error){
-            console.error("Command does not exist", error); }
+        switch(command){
+            case("trigger"): triggers.add(message, args, config.prefix); break;
+            case("triggers"): triggers.list(message, args); break;
+            case("room"): rooms.create(message, args, message.guild.channels.cache.get(config.roomCategory)); break;
+            case("rooms"): rooms.list(message, args, message.guild.channels.cache.get(config.roomCategory)); break;
+            default: return message.channel.send("Error: envalid command");
+        }
     } else
-        trigger.execute(message);
+        triggers.play(message, message.guild.channels.cache.get(config.roomCategory));
 })
