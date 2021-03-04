@@ -1,5 +1,4 @@
 const {roomCategory, roomName} = require("../config.json");
-const {isGuildMember} = require("../functions.js");
 
 module.exports = {
 	name: 'room',
@@ -8,21 +7,25 @@ module.exports = {
 	execute(message, args) {
         //Returns the channel object if the member has a secret room
         const getRoom = member =>{
-            //checks if the message was posted in the member's room by the owner
-            for(const child of message.guild.channels.cache.get(channelsroomCategory)){
-                if(child.channel.permissionOverwrites.role.id.some(member.id))
-                        return child;
+            const categoryRoom = message.guild.channels.cache.get(roomCategory);
+            for(const child of categoryRoom.children){
+                const channel = message.guild.channels.cache.get(child[0]);
+                for(const role of channel.permissionOverwrites){
+                    //checks if ID is the member's ID
+                    if (role[0] === member.id)
+                        return channel;
+                }
             }
         }
 
         const createRoom = member => {
             //Verify argument
-            if(room === undefined)
+            if(getRoom(member))
                 message.channel.send(`Error: secret room already exists - ${getRoom(member)}`);
             else{
                 message.guild.channels.create(roomName, {"parent" : roomCategory})
                 .then(newChannel => {
-                    newChannel.updateOverwrite(message.author,{VIEW_CHANNEL: true});
+                    newChannel.updateOverwrite(member.id,{VIEW_CHANNEL: true});
                     message.channel.send(`Secret Room ${newChannel} has successfully been created`);
                 });
             }
@@ -34,22 +37,24 @@ module.exports = {
 
         }
 
-        if(args[0] === undefined){
-            createRoom(message.author);
-        }
+        if(args[0] === undefined)
+            return createRoom(message.author);
 
         switch(args[0]){
-            case("add"):
-                if(args[1] === undefined) break;
-                createRoom(args[1]); break;
+            // case("add"):
+            //     if(args[1] === undefined) break;
+            //     else createRoom(args[1]); break;
             case("remove"):
                 if(args[1] === undefined) break;
-                getRoom().then(room =>  {
-                    if(room === undefined)
-                        message.channel.send("Member does not have a secret room");
+                else{
+                    getRoom().then(room =>  {
+                    if(room)
+                        room.delete().then(() => message.channel.send(`Secret Room belonging to ${arg[1]} has successfully been removed`)) 
                     else 
-                        room.delete().then(() => message.channel.send(`Secret Room belonging to ${arg[1]} has successfully been removed`))
-                })
+                        message.channel.send("Member does not have a secret room");
+                    })
+                }
+                break;
             default: return message.channel.send("Error: invalid arguments")
         }
     },

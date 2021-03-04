@@ -1,11 +1,10 @@
 const fs = require("fs");
-const triggers =  JSON.parse(fs.readFileSync("./triggers.json"))//require("./triggers.json");
+const triggers =  require("./triggers.json");
 let category;
 
 module.exports = {
     updateTriggers: t => {
         triggers.push(t);
-        console.log(triggers);
     },
     getTriggers: () => {
         return triggers;

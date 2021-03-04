@@ -1,7 +1,7 @@
 const fs = require('fs');
 const fetch = require('node-fetch');
 const functions = require("../functions.js");
-const {getTriggers, updateTriggers} = require("../trigger.js");
+const {updateTriggers} = require("../trigger.js");
 const {prefix} = require("../config.json");
 
 module.exports = {
@@ -10,23 +10,6 @@ module.exports = {
     args: true,
     alias: "sound",
 	async execute (message) { 
-        const checkFile = async (url, type) => {
-            const res = await fetch(url);
-            const fileType = functions.getFileType(res);
-
-            if(fileType === "image" || fileType === "audio"){
-                if (Number(res.headers.get('content-length')) > 1024 * 1024 && fileType === "audio")
-                    return message.channel.send(`Error: ${fileType} file exceeds more than 1MB`);
-                if (Number(res.headers.get('content-length')) > 1024 * 3072 && fileType === "image")
-                    return message.channel.send(`Error: ${fileType} file exceeds more than 3MB`);
-                if (type === fileType)
-                    return true;
-                else
-                    message.channel.send(`Error: not a ${type} file type`);
-            }else
-                message.channel.send("Error: invalid file type. Must be either an image or audio");
-        }
-
         const addTrigger = (trigger, triggers) => {
             const getIndex = () => {
                 if (triggers.length < 10)
@@ -55,7 +38,7 @@ module.exports = {
             message.channel.send(`${trigger.type} trigger **${trigger.text}** successfully added`);
         }
         
-        const triggers = getTriggers(); //JSON.parse(fs.readFileSync("./triggers.json"));
+        const triggers = JSON.parse(fs.readFileSync("./triggers.json")); //getTriggers(); 
         const trigger = {type:null, text:null, file:null, category:null, author:message.author.id, uploaded: new Date().toLocaleString()};
         
         //Trigger Type
@@ -84,7 +67,6 @@ module.exports = {
                 //
                 // if(["text", "image", "audio"].some(m => m === response.content.toLowerCase()))
                 //     return message.channel.send(`Error: unable to use **${response.content}** as a trigger. Reserved for !deltrigger`);
-
                 if(response.content.startsWith(prefix))
                     message.channel.send("Error: text cannot start with prefix");
                 else{
@@ -99,27 +81,36 @@ module.exports = {
         if (trigger.text === null) return;
 
         //Trigger File
-        if(trigger.type === "url"){
+        if(trigger.type === "image" || trigger.type === "audio"){
             message.channel.send("Submit the file. Either paste the URL or upload file");
-            await functions.getInputFromMessage(message).then(response => {
+            await functions.getInputFromMessage(message).then(async response => {
                 if(response === undefined)
                     message.channel.send("Error: nothing entered");
                 else{
-                    if (response?.attachments !== null){
-                        functions.validateURL(response.attachments.first().url).then(() => {
-                            checkFile(response.attachments.first().url, trigger.type).then(result => {
-                                if(result !== undefined);
-                                    trigger.file = response.attachments.first().url;
-                            });
+                    let attachment;
+                    if (response?.attachments === null)
+                        attachment = response.content;
+                    else
+                        attachment = response.attachments.first().url;
+
+                    await functions.validateURL(attachment).then(async () => {
+                        const res = await fetch(attachment);
+                        const fileType = functions.getFileType(res);
+                        if(fileType === "image" || fileType === "audio"){
+                            if(Number(res.headers.get('content-length')) > 1024 * 1024 && fileType === "audio"){
+                                message.channel.send(`Error: ${fileType} file exceeds more than 1MB`);
+                            }else{
+                                if(trigger.type === fileType) trigger.file = attachment;
+                            }
+                            if(Number(res.headers.get('content-length')) > 1024 * 3072 && fileType === "image"){
+                                message.channel.send(`Error: ${fileType} file exceeds more than 3MB`);
+                            }else{
+                                if (trigger.type === fileType) trigger.file = attachment;
+                                else message.channel.send(`Error: not a ${type} file type`);
+                            }
+                        }else
+                            message.channel.send("Error: invalid file type. Must be either an image or audio");
                         }).catch(e => console.log(e + "\tInvalid URL"))
-                    }else{
-                        functions.validateURL(response.content.toLowerCase()).then(() => {
-                            checkFile(response.content.toLowerCase(), trigger.type).then(result => {
-                                if(result !== undefined);
-                                    trigger.file = response.content.toLowerCase();
-                            });
-                        }).catch(e => console.log(e + "\tInvalid URL"))
-                    }
                 }
             }).catch(e => console.log(e.code + "\tError with trigger URL"));
         }
@@ -134,16 +125,16 @@ module.exports = {
                     // if(functions.hasSpecialCharaters(response.content))
                     // message.channel.send("Error: cannot use special characters (excluding spaces)");
                     // else
-                    trigger.file = response.content.toLowerCase();
+                    trigger.file = response.content;
                 }
             }).catch(e => console.log(e.code + "\tError with trigger response text"));
         }
-             
+        
         if (trigger.file === null) return;
                 
         //Trigger Category
         message.channel.send("Enter the trigger category e.g. animals. Enter \"none\" if you don't want to add a category");
-        await functions.getInputFromMessage(message, message.author.id, message.channel.id).then(response => {
+        await functions.getInputFromMessage(message).then(response => {
             if(response === undefined) return;
             if(response.content.toLowerCase() === "none") trigger.category = "";
             if(functions.hasSpecialCharaters(response.content))

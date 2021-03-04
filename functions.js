@@ -20,9 +20,10 @@ function hasMod(member){
         ret
 }
 
-function isGuildMember(){
-    
-}
+async function isGuildMember(message, memberId){
+        await message.guild.members.fetch(memberId)
+        .catch(e => console.log(e));
+    }
 
 function hasSpecialCharaters(n){
     const specialCharacters = /[^a-zA-Z0-9 _\-\/]/;
@@ -46,6 +47,7 @@ async function validateURL(n){
 	const signal  = controller.signal
 	const timeout = setTimeout(() => controller.abort(), 1500);
 	await fetch(n, {signal: controller.signal})
+    return true;
 }
 
 function getFileType(res){
