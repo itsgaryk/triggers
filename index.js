@@ -3,8 +3,8 @@ const Discord = require('discord.js');
 
 //Custom modules
 const config = require('./config.json');
-const triggers = require ('./triggers.js');
-const rooms = require("./rooms.js")
+const triggers = require ('./src/triggers');
+const rooms = require("./src/rooms")
 
 const client = new Discord.Client({
     presence:{
