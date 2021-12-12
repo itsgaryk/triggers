@@ -1,10 +1,12 @@
-const fs = require('fs');
 const Discord = require('discord.js');
 
 //Custom modules
 const config = require('./config.json');
 const triggers = require ('./src/triggers');
 const rooms = require("./src/rooms")
+
+//Trigger Assets
+const assets = triggers.verify()
 
 const client = new Discord.Client({
     presence:{
@@ -28,45 +30,32 @@ client.login(config.token);
 client.once('ready', () => {
     console.log('Locked and loaded!');
         //Verifies voice chat role
-        client.guilds.fetch("775016095596937238").then(guild => {
+        client.guilds.fetch(config.server).then(guild => {
             guild.roles.fetch(config.voiceRole)
             .catch(e => {
                 console.log(e)
                 process.exit(1);
             });
         }).catch(e => {
-            console.log(e + "\tInvalid voice chat role")
+            console.log(e + "\tUnable to find voice chat role on server")
             process.exit(1);
         });
         //Verifies category channel
         client.channels.fetch(config.roomCategory)
         .catch(e => {
-            console.log(e + "\tInvalid category channel")
+            console.log(e + "\tUnable to find category on server")
             process.exit(1);
         });
 });
 
-//Event - when a reaction is added to a message
-client.on('messageReactionAdd', async (reaction, user) => {
-    try {
-        const emoji = reaction.emoji;
-        const message = reaction.message;
-        if(emoji.name === "😀")
-            message.channel.send("😀");
-    } catch (error) {
-        console.error('Something went wrong when fetching the message: ', error);
-        // Return as `reaction.message.author` may be undefined/null
-        return;
-    }
-})
-
 //Event - Status change to voice channels
+//Adds the voice role to the user when joining a voice channel
 client.on('voiceStateUpdate', (oldState, newState) => {
     if (((newState.channelID && !newState.member.roles.cache.find(r => r.id == config.voiceRole) && !newState.member.user.bot))){
         newState.member.roles.add(config.voiceRole)
-        return;
+        return; 
     }
-
+//Removes the voice role to the user when leaving a voice channel
     if (newState.channelID == null && !newState.member.user.bot) {
         newState.member.roles.remove(config.voiceRole);
         return;
@@ -90,12 +79,12 @@ client.on('message', message => {
         const command = args.shift();
         //special exceptions
         switch(command){
-            case("trigger"): triggers.add(message, args, config.prefix); break;
-            case("triggers"): triggers.list(message, args); break;
-            case("room"): rooms.create(message, args, message.guild.channels.cache.get(config.roomCategory)); break;
-            case("rooms"): rooms.list(message, args, message.guild.channels.cache.get(config.roomCategory)); break;
+            //case("trigger"): triggers.add(message, args, config.prefix); break;
+            //case("triggers"): triggers.list(message, args); break;
+            case("room"): rooms.createRoom(message, config.roomCategory, config.roomName); break;
+            case("rooms"): rooms.listRooms(message, message.guild.channels.cache.get(config.roomCategory)); break;
             default: return message.channel.send("Error: envalid command");
         }
     } else
-        triggers.play(message, message.guild.channels.cache.get(config.roomCategory));
+        triggers.play(message, message.guild.channels.cache.get(config.roomCategory), config.voiceRole, assets);
 })

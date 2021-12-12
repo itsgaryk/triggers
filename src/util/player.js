@@ -10,7 +10,7 @@ module.exports = function (file){
             highWaterMark: 512,
             bitrate: 128,
             fec: true
-        })
+        }
     
         streamDispatcher.setBitrate(128);
         streamDispatcher.setFEC(true);

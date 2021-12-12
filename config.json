@@ -1,9 +1,8 @@
 {
     "prefix": "!",
-    "token": "BOT TOKEN",
-    "roomName": "CHANNEL NAME",
-    "roomCategory": "CATEGORY ID",
-    "modRole": "ROLE ID",
-    "voiceRole": "ROLE ID",
-    "radioRole": "ROLE ID"
+    "token": "Nzk1OTQwODkzNzA5OTU5MTc4.X_QruA.j57UBFfDewstTSXV1kEn3xoY-Cw",
+    "server": "817186306990931998",
+    "roomName": "your-secret-room",
+    "roomCategory": "919586252003639386",
+    "voiceRole": "919586441107996742"
 }

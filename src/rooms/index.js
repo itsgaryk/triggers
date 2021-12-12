@@ -1,9 +1,7 @@
-const createRoom = require("src/rooms/create.js");
-const listRooms = require("src/rooms/list.js");
-const hasRoom = require("src/rooms/has.js");
+const createRoom = require("./create.js");
+const listRooms = require("./list.js");
 
 module.exports = {
     createRoom,
     listRooms,
-    existRoom
 }
