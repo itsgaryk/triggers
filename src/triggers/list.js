@@ -1,13 +1,13 @@
-functions = require('../util/functions.js');
+const utilCommon = require('../util/common');
 
 module.exports = function(message, args, assets){
 
     listTriggers = (condition) => {
         if(condition == undefined)
-            composeMessage(functions.sortArray(assets.map(x => x.text)));
+            composeMessage(utilCommon.sortArray(assets.map(x => x.text)));
         else
             //Triggers by type
-            composeMessage(functions.sortArray(assets.filter(x => x.type == condition).map(x => x.text)));
+            composeMessage(utilCommon.sortArray(assets.filter(x => x.type == condition).map(x => x.text)));
 
             //Triggers uploaded by the user        
     }

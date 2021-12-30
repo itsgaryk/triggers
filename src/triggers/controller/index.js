@@ -1,11 +1,18 @@
-const add = require("./add.js");
-const find = require("./find.js");
-const remove = require("./remove.js");
-const update = require("./update.js");
+const fs = require('fs')
+const path = require('path')
 
-module.exports = {
-    add,
-    find,
-    remove,
-    update
-}
+const controller = {}
+
+fs.readdirSync(__dirname)
+  .filter(file => file !== 'index.js' && file.includes(".js"))
+  .forEach(file => {
+    const fullName = path.join(__dirname, file)
+
+    if (file.toLowerCase().endsWith('.js')) {
+      // Removes '.js' from the property name in 'models' object
+      const [filename] = file.split('.')
+      controller[filename] = require(fullName)
+    }
+  })
+
+module.exports = controller;

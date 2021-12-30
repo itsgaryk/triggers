@@ -29,7 +29,7 @@ module.exports = (message, category, voiceRole, enabled, assets) => {
     switch(asset?.type){
             case(undefined): break;
             case("image"):message.channel.send({files:[fs.realpathSync(`./assets/${asset.file}`)]}); break;
-            case("text"): message.channel.send(asset.file); break;
+            case("text"): message.channel.send(fs.readFileSync(`./assets/${asset.file}`)); break;
             case("audio"): if(isRoom() && message.member.voice.channel) playAudio(); break;
             default: return;
         }
