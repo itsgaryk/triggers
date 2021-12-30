@@ -2,6 +2,7 @@ const Discord = require('discord.js');
 
 //Custom modules
 const config = require('./config.json');
+config.enabled = 1;
 const triggers = require ('./src/triggers');
 const rooms = require("./src/rooms")
 
@@ -28,23 +29,43 @@ const client = new Discord.Client({
 
 client.login(config.token);
 client.once('ready', () => {
-    console.log('Locked and loaded!');
-        //Verifies voice chat role
         client.guilds.fetch(config.server).then(guild => {
-            guild.roles.fetch(config.voiceRole)
-            .catch(e => {
-                console.log(e)
+            //Verifies voice chat role
+            try{
+                guild.roles.fetch(config.voiceRole)
+                console.log("✅ Found the voice chat role on the server");
+            }
+            catch(e){
+                console.log(e + "\t❌ Unable to find voice chat role on server")
                 process.exit(1);
-            });
-        }).catch(e => {
-            console.log(e + "\tUnable to find voice chat role on server")
-            process.exit(1);
-        });
-        //Verifies category channel
-        client.channels.fetch(config.roomCategory)
-        .catch(e => {
-            console.log(e + "\tUnable to find category on server")
-            process.exit(1);
+            }
+            //Verifies category channel
+            try{
+                guild.channels.cache.get()
+                console.log("✅ Found the category on the server");
+            }
+            catch(e){
+                console.log(e + "\t❌ Unable to find category on server")
+                process.exit(1);
+            }
+            //Verifies permissions
+            try{
+                let i = 0;
+                if(guild.me.hasPermission("SEND_MESSAGES")) i++;
+                if(guild.me.hasPermission("ADD_REACTIONS")) i++;
+                if(guild.me.hasPermission("CONNECT")) i++;
+                if(guild.me.hasPermission("MANAGE_MESSAGES"))i++;
+                if(guild.me.hasPermission("MANAGE_ROLES")) i++;
+                if(guild.me.hasPermission("MANAGE_CHANNELS")) i++;
+                if(i === 6) console.log("✅ Permissions are setup");
+            }
+            catch(e){
+                console.log(e + "\t❌ Missing bot permissions");
+                process.exit(1);
+            }
+            finally{
+                console.log('Locked and loaded!');
+            }
         });
 });
 
@@ -79,12 +100,13 @@ client.on('message', message => {
         const command = args.shift();
         //special exceptions
         switch(command){
-            //case("trigger"): triggers.add(message, args, config.prefix); break;
-            //case("triggers"): triggers.list(message, args); break;
+            case("toggle"):config.enabled = triggers.toggle(message, config); break;
+            case("trigger"):triggers.create(message, args, config.prefix, assets); break;
+            case("triggers"): triggers.list(message, args, assets); break;
             case("room"): rooms.createRoom(message, config.roomCategory, config.roomName); break;
             case("rooms"): rooms.listRooms(message, message.guild.channels.cache.get(config.roomCategory)); break;
             default: return message.channel.send("Error: envalid command");
         }
     } else
-        triggers.play(message, message.guild.channels.cache.get(config.roomCategory), config.voiceRole, assets);
+        if(config.enabled) triggers.play(message, message.guild.channels.cache.get(config.roomCategory), config.voiceRole, config.enabled, assets);
 })

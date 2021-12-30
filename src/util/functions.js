@@ -1,6 +1,7 @@
 const fs = require('fs');
 const fetch = require("node-fetch");
 const AbortController = require("abort-controller");
+const { ReactionUserManager } = require('discord.js');
 
 module.exports = {
     hasMod,
@@ -13,6 +14,7 @@ module.exports = {
     getFileType,
     sortArray,
     getInputFromMessage,
+    getReactionFromMessage
 };
 
 function hasMod(member){
@@ -92,11 +94,38 @@ function removeFileExtension(fileList){
 };
 
 //Author is message.author.id or a specified User ID. Channel is message.channel.id or a specified Channel ID
-async function getInputFromMessage (message) {
-    newMessage = await message.channel.awaitMessages(response => response.author.id === message.author.id && response.channel.id === message.channel.id,{ max: 1, time: 20000, errors: ['time'] })
+async function getInputFromMessage (message, content) {
+    const newMessage = await message.channel.send(content);
+    const userResponse = await message.channel.awaitMessages(response => 
+        response.author.id === message.author.id && response.channel.id === message.channel.id,{ max: 1, time: 20000, errors: ['time'] })
     .catch(() => {
-        console.log("nothing entered");
+        message.channel.send("🤷‍♂️ Nothing entered");
     });
-    if (newMessage !== undefined)    
-        return newMessage.first();
+
+    newMessage.delete();
+    if (userResponse){
+        userResponse.first().delete();
+        return userResponse.first();
+    }
+}
+
+async function getReactionFromMessage (message, reacts, content) {
+    const msg = await message.channel.send(content);
+    for(let i = 0; i < reacts.length; i++)
+        await msg.react(reacts[i].emoji);
+
+    const collector = await msg.awaitReactions((response, user) => {
+        if(message.author.id == user.id && reacts.some(react => react.emoji == response.emoji.name)) return response}, {max: 1, time: 10000, errors: ['time'] })
+    .catch(() => {
+        message.channel.send("🤷‍♂️ Nothing selected");
+    });
+
+    msg.delete();
+
+    if (collector)
+        for(let i = 0; i < reacts.length; i++){
+            if(reacts[i].emoji ==  collector.first().emoji.name){
+                return reacts[i].type;
+            }        
+        }
 }
