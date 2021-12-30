@@ -4,7 +4,10 @@ const Discord = require('discord.js');
 const config = require('./config.json');
 config.enabled = 1;
 const triggers = require ('./src/triggers');
-const rooms = require("./src/rooms")
+const rooms = require("./src/rooms");
+
+//Trigger switches - these do different things
+const switches = {enabled: "1"}
 
 //Trigger Assets
 const assets = triggers.verify()
@@ -103,8 +106,8 @@ client.on('message', message => {
             case("toggle"):config.enabled = triggers.toggle(message, config); break;
             case("trigger"):triggers.create(message, args, config.prefix, assets); break;
             case("triggers"): triggers.list(message, args, assets); break;
-            case("room"): rooms.createRoom(message, config.roomCategory, config.roomName); break;
-            case("rooms"): rooms.listRooms(message, message.guild.channels.cache.get(config.roomCategory)); break;
+            case("room"): rooms.create(message, config.roomCategory, config.roomName); break;
+            case("rooms"): rooms.list(message, message.guild.channels.cache.get(config.roomCategory)); break;
             default: return message.channel.send("Error: envalid command");
         }
     } else
